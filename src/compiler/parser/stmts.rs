@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::super::tokenizer::Token;
-use super::{ParseResult, ParserState, blocks, decls, exprs};
+use super::{ParseResult, ParserState, blocks, decls, expected, exprs};
 
 enum ForInit {
     Decl(decls::Decl),
@@ -93,17 +93,10 @@ pub enum Stmt {
     For(For),
 }
 
-fn expected<T: fmt::Display, K: fmt::Display>(value: T, found: Option<K>) -> String {
-    match found {
-        Some(token) => format!("Expected `{value}` found: {token}"),
-        None => format!("Unexpected end of input: expected `{value}`"),
-    }
-}
-
 fn consume_null(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Semicolon) => Ok((state, Stmt::Null)),
-        token => Err(expected(";", token)),
+        token => Err(expected(Token::Semicolon, token)),
     }
 }
 
@@ -113,10 +106,10 @@ fn consume_return(mut state: ParserState) -> ParseResult<Stmt> {
             let (mut state, expr) = exprs::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Return(expr))),
-                token => Err(expected(";", token)),
+                token => Err(expected(Token::Semicolon, token)),
             }
         }
-        token => Err(expected("return", token)),
+        token => Err(expected(Token::Return, token)),
     }
 }
 
@@ -124,9 +117,9 @@ fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Break) => match state.tokens.pop_front() {
             Some(Token::Semicolon) => Ok((state, Stmt::Break(None))),
-            token => Err(expected(";", token)),
+            token => Err(expected(Token::Semicolon, token)),
         },
-        token => Err(expected("break", token)),
+        token => Err(expected(Token::Break, token)),
     }
 }
 
@@ -136,10 +129,10 @@ fn consume_continue(mut state: ParserState) -> ParseResult<Stmt> {
             let label = state.current_loop().map(|scope| scope.label().into());
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Continue(label))),
-                token => Err(expected(";", token)),
+                token => Err(expected(Token::Semicolon, token)),
             }
         }
-        token => Err(expected("continue", token)),
+        token => Err(expected(Token::Continue, token)),
     }
 }
 
@@ -150,9 +143,9 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
                 let (state, stmt) = parse(state)?;
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
-            token => Err(expected(":", token)),
+            token => Err(expected(Token::Colon, token)),
         },
-        token => Err(expected("identifier", token)),
+        token => Err(expected(Token::Ident("identifier".into()), token)),
     }
 }
 
@@ -161,11 +154,11 @@ fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Goto) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Goto(ident))),
-                token => Err(expected(";", token)),
+                token => Err(expected(Token::Semicolon, token)),
             },
-            token => Err(expected("identifier", token)),
+            token => Err(expected(Token::Ident("identifier".into()), token)),
         },
-        token => Err(expected("goto", token)),
+        token => Err(expected(Token::Goto, token)),
     }
 }
 
@@ -175,10 +168,10 @@ fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
             let (mut state, block) = blocks::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::RBrace) => Ok((state, Stmt::Comp(block))),
-                token => Err(expected("}", token)),
+                token => Err(expected(Token::RBrace, token)),
             }
         }
-        token => Err(expected("{", token)),
+        token => Err(expected(Token::LBrace, token)),
     }
 }
 
@@ -192,12 +185,12 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
                         let (mut state, then) = parse(state)?;
                         todo!()
                     }
-                    token => Err(expected(")", token)),
+                    token => Err(expected(Token::RParen, token)),
                 }
             }
-            token => Err(expected("(", token)),
+            token => Err(expected(Token::RParen, token)),
         },
-        token => Err(expected("if", token)),
+        token => Err(expected(Token::If, token)),
     }
 }
 

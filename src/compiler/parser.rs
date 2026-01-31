@@ -1,4 +1,5 @@
 use std::collections::{HashSet, VecDeque};
+use std::fmt;
 
 use super::generate_tag;
 use super::tokenizer::Token;
@@ -31,52 +32,11 @@ impl<T, U> TupleExt<T, U> for (T, U) {
     }
 }
 
-trait Pipe<T> {
-    fn pipe<U, F>(self, f: F) -> ParseResult<U>
-    where
-        F: FnOnce(ParserState, T) -> ParseResult<U>;
-}
-
-impl<T> Pipe<T> for ParseResult<T> {
-    fn pipe<U, F: FnOnce(ParserState, T) -> ParseResult<U>>(self, f: F) -> ParseResult<U> {
-        match self {
-            Ok((state, value)) => f(state, value),
-            Err(e) => Err(e),
-        }
+fn expected(value: Token, found: Option<Token>) -> String {
+    match found {
+        Some(token) => format!("Expected `{value}` found: {token}"),
+        None => format!("Unexpected end of input: expected `{value}`"),
     }
-}
-
-fn consume(mut state: ParserState) -> ParseResult<Token> {
-    match state.tokens.pop_front() {
-        Some(token) => Ok((state, token)),
-        None => Err(String::from("Unexpected end of input")),
-    }
-}
-
-fn expect<F>(state: ParserState, token: Token, pred: F) -> ParseResult<Token>
-where
-    F: FnOnce(&Token) -> bool,
-{
-    if pred(&token) {
-        Ok((state, token))
-    } else {
-        Err(format!("Unexpected token: `{token}`"))
-    }
-}
-
-fn consume_then<F, T>(state: ParserState, f: F) -> ParseResult<T>
-where
-    F: FnOnce(ParserState, Token) -> ParseResult<T>,
-{
-    consume(state).pipe(f)
-}
-
-fn consume_expect_then<F, P, T>(state: ParserState, pred: P, f: F) -> ParseResult<T>
-where
-    P: FnOnce(&Token) -> bool,
-    F: FnOnce(ParserState, Token) -> ParseResult<T>,
-{
-    consume(state).pipe(|s, t| expect(s, t, pred)).pipe(f)
 }
 
 enum Scope {
@@ -113,10 +73,6 @@ impl ParserState {
             .rev()
             .find(|scope| matches!(scope, Scope::Switch(_)))
     }
-}
-
-fn generate_label() -> String {
-    generate_tag("label")
 }
 
 pub struct Program(Vec<decls::FnDecl>);
