@@ -176,11 +176,32 @@ fn consume_goto(mut state: State) -> StmtResult {
     }
 }
 
+fn consume_block(mut state: State) -> StmtResult {
+    match state.tokens.pop_front() {
+        Some(Token::LBrace) => {
+            let (block, state) = blocks::parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::RBrace) => Ok((Stmt::Comp(block), state)),
+                Some(token) => return Err(format!("Expected `}}` found: {token}")),
+                None => return Err(String::from("Unexpected end of input: expected `}`")),
+            }
+        }
+        Some(token) => return Err(format!("Expected `{{` found: {token}")),
+        None => return Err(String::from("Unexpected end of input: expected: `{`")),
+    }
+}
+
+fn consume_if(mut state: State) -> StmtResult {
+    todo!()
+}
+
 pub fn parse(state: State) -> StmtResult {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected stmt")? {
         Token::Semicolon => consume_null(state),
+        Token::LBrace => consume_block(state),
         Token::Return => consume_return(state),
+        Token::If => consume_if(state),
         Token::Break => consume_break(state),
         Token::Continue => consume_continue(state),
         Token::Goto => consume_goto(state),
