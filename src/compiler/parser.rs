@@ -32,13 +32,6 @@ impl<T, U> TupleExt<T, U> for (T, U) {
     }
 }
 
-fn expected(value: Token, found: Option<Token>) -> String {
-    match found {
-        Some(token) => format!("Expected `{value}` found: {token}"),
-        None => format!("Unexpected end of input: expected `{value}`"),
-    }
-}
-
 enum Scope {
     Loop(String),
     Switch(String),

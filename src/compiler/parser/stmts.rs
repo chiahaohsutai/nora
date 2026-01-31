@@ -1,7 +1,7 @@
 use std::fmt;
 
 use super::super::tokenizer::Token;
-use super::{ParseResult, ParserState, blocks, decls, expected, exprs};
+use super::{ParseResult, ParserState, blocks, decls, exprs};
 
 enum ForInit {
     Decl(decls::Decl),
@@ -104,7 +104,8 @@ pub enum Stmt {
 fn consume_null(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Semicolon) => Ok((state, Stmt::Null)),
-        token => Err(expected(Token::Semicolon, token)),
+        Some(token) => Err(format!("Expected `;` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `;`")),
     }
 }
 
@@ -114,10 +115,12 @@ fn consume_return(mut state: ParserState) -> ParseResult<Stmt> {
             let (mut state, expr) = exprs::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Return(expr))),
-                token => Err(expected(Token::Semicolon, token)),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
             }
         }
-        token => Err(expected(Token::Return, token)),
+        Some(token) => Err(format!("Expected `return` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `return`")),
     }
 }
 
@@ -125,9 +128,11 @@ fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Break) => match state.tokens.pop_front() {
             Some(Token::Semicolon) => Ok((state, Stmt::Break(None))),
-            token => Err(expected(Token::Semicolon, token)),
+            Some(token) => Err(format!("Expected `;` found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected `;`")),
         },
-        token => Err(expected(Token::Break, token)),
+        Some(token) => Err(format!("Expected `break` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `{`")),
     }
 }
 
@@ -137,10 +142,12 @@ fn consume_continue(mut state: ParserState) -> ParseResult<Stmt> {
             let label = state.current_loop().map(|scope| scope.label().into());
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Continue(label))),
-                token => Err(expected(Token::Semicolon, token)),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
             }
         }
-        token => Err(expected(Token::Continue, token)),
+        Some(token) => Err(format!("Expected `continue` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `continue`")),
     }
 }
 
@@ -151,9 +158,11 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
                 let (state, stmt) = parse(state)?;
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
-            token => Err(expected(Token::Colon, token)),
+            Some(token) => Err(format!("Expected `:` found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected `:`")),
         },
-        token => Err(expected(Token::Ident("identifier".into()), token)),
+        Some(token) => Err(format!("Expected identifier found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected identifier")),
     }
 }
 
@@ -162,11 +171,14 @@ fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Goto) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Goto(ident))),
-                token => Err(expected(Token::Semicolon, token)),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
             },
-            token => Err(expected(Token::Ident("identifier".into()), token)),
+            Some(token) => Err(format!("Expected identifier found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected identifier")),
         },
-        token => Err(expected(Token::Goto, token)),
+        Some(token) => Err(format!("Expected `goto` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `goto`")),
     }
 }
 
@@ -176,10 +188,12 @@ fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
             let (mut state, block) = blocks::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::RBrace) => Ok((state, Stmt::Comp(block))),
-                token => Err(expected(Token::RBrace, token)),
+                Some(token) => Err(format!("Expected `}}` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `}`")),
             }
         }
-        token => Err(expected(Token::LBrace, token)),
+        Some(token) => Err(format!("Expected `{{` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `{`")),
     }
 }
 
@@ -199,12 +213,15 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
                             Ok((state, Stmt::If(If::new(cond, then, None))))
                         }
                     }
-                    token => Err(expected(Token::RParen, token)),
+                    Some(token) => Err(format!("Expected `)` found: {token}")),
+                    None => Err(String::from("Unexpected end of input: expected `)`")),
                 }
             }
-            token => Err(expected(Token::RParen, token)),
+            Some(token) => Err(format!("Expected `(` found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected `(`")),
         },
-        token => Err(expected(Token::If, token)),
+        Some(token) => Err(format!("Expected `if` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `if`")),
     }
 }
 
