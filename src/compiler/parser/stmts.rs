@@ -197,29 +197,34 @@ fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_cond(mut state: ParserState) -> ParseResult<exprs::Expr> {
+    match state.tokens.pop_front() {
+        Some(Token::LParen) => {
+            let (mut state, cond) = exprs::parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::RParen) => Ok((state, cond)),
+                Some(token) => Err(format!("Expected `)` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `)`")),
+            }
+        }
+        Some(token) => Err(format!("Expected `(` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `(`")),
+    }
+}
+
 fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
-        Some(Token::If) => match state.tokens.pop_front() {
-            Some(Token::LParen) => {
-                let (mut state, cond) = exprs::parse(state)?;
-                match state.tokens.pop_front() {
-                    Some(Token::RParen) => {
-                        let (mut state, then) = parse(state)?;
-                        if let Some(Token::Else) = state.tokens.front() {
-                            let _ = state.tokens.pop_front();
-                            let (state, otherwise) = parse(state)?;
-                            Ok((state, Stmt::If(If::new(cond, then, Some(otherwise)))))
-                        } else {
-                            Ok((state, Stmt::If(If::new(cond, then, None))))
-                        }
-                    }
-                    Some(token) => Err(format!("Expected `)` found: {token}")),
-                    None => Err(String::from("Unexpected end of input: expected `)`")),
-                }
+        Some(Token::If) => {
+            let (state, cond) = consume_cond(state)?;
+            let (mut state, then) = parse(state)?;
+            if let Some(Token::Else) = state.tokens.front() {
+                let _ = state.tokens.pop_front();
+                let (state, otherwise) = parse(state)?;
+                Ok((state, Stmt::If(If::new(cond, then, Some(otherwise)))))
+            } else {
+                Ok((state, Stmt::If(If::new(cond, then, None))))
             }
-            Some(token) => Err(format!("Expected `(` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `(`")),
-        },
+        }
         Some(token) => Err(format!("Expected `if` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `if`")),
     }
