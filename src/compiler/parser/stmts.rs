@@ -22,8 +22,16 @@ impl From<exprs::Expr> for ForInit {
 
 struct If {
     cond: exprs::Expr,
-    body: Box<Self>,
-    otherwise: Option<Box<Self>>,
+    body: Box<Stmt>,
+    otherwise: Option<Box<Stmt>>,
+}
+
+impl If {
+    #[rustfmt::skip]
+    fn new(cond: exprs::Expr, body: Stmt, otherwise: Option<Stmt>) -> Self {
+        let otherwise = otherwise.map(|stmt| Box::new(stmt));
+        Self { cond, body: Box::new(body), otherwise }
+    }
 }
 
 struct Label {
@@ -183,7 +191,13 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
                 match state.tokens.pop_front() {
                     Some(Token::RParen) => {
                         let (mut state, then) = parse(state)?;
-                        todo!()
+                        if let Some(Token::Else) = state.tokens.front() {
+                            let _ = state.tokens.pop_front();
+                            let (state, otherwise) = parse(state)?;
+                            Ok((state, Stmt::If(If::new(cond, then, Some(otherwise)))))
+                        } else {
+                            Ok((state, Stmt::If(If::new(cond, then, None))))
+                        }
                     }
                     token => Err(expected(Token::RParen, token)),
                 }
