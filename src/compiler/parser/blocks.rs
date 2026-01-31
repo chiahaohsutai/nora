@@ -1,8 +1,4 @@
-use crate::compiler::parser::State;
-
-use super::{ParserResult, decls, stmts};
-
-type BlockResult = ParserResult<Block>;
+use super::{ParseResult, ParserState, decls, stmts};
 
 enum BlockItem {
     Stmt(stmts::Stmt),
@@ -13,6 +9,6 @@ pub struct Block {
     items: Vec<BlockItem>,
 }
 
-pub fn parse(state: State) -> BlockResult {
+pub fn parse(state: ParserState) -> ParseResult<Block> {
     todo!()
 }

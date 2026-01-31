@@ -1,9 +1,7 @@
 use std::fmt;
 
 use super::super::tokenizer::Token;
-use super::{ParserResult, State, TupleExt, exprs};
-
-type FactorResult = ParserResult<Factor>;
+use super::{ParseResult, ParserState, TupleExt, exprs};
 
 enum UnaryOp {
     Decr,
@@ -102,52 +100,52 @@ impl From<Unary> for Factor {
     }
 }
 
-fn consume_args(mut state: State) -> FactorResult {
+fn consume_args(mut state: ParserState) -> ParseResult<Factor> {
     todo!()
 }
 
-fn consume_ident(mut state: State) -> FactorResult {
+fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
     match state.tokens.pop_front() {
         Some(Token::Ident(ident)) => match state.tokens.front() {
             Some(Token::MinusMinus | Token::PlusPlus) => {
                 let op = UnaryOp::try_from(&state.tokens.pop_front().unwrap())?;
                 let factor = Factor::Ident(ident);
-                Ok((Unary::new(op, Fixity::Postfix, factor).into(), state))
+                Ok((state, Unary::new(op, Fixity::Postfix, factor).into()))
             }
             Some(Token::LParen) => consume_args(state),
-            _ => Ok((Factor::Ident(ident), state)),
+            _ => Ok((state, Factor::Ident(ident))),
         },
         Some(token) => Err(format!("Expected identifier found: {token}")),
         None => Err(String::from("Unexpected end of input: expected factor")),
     }
 }
 
-fn consume_unary(mut state: State) -> FactorResult {
+fn consume_unary(mut state: ParserState) -> ParseResult<Factor> {
     let token = state
         .tokens
         .pop_front()
         .ok_or(String::from("Unexpected end of input: expected factor"))?;
     let op = UnaryOp::try_from(&token)?;
-    Ok(parse(state)?.map_first(|f| Unary::new(op, Fixity::Prefix, f).into()))
+    Ok(parse(state)?.mapr(|f| Unary::new(op, Fixity::Prefix, f).into()))
 }
 
-fn consume_const(mut state: State) -> FactorResult {
+fn consume_const(mut state: ParserState) -> ParseResult<Factor> {
     match state.tokens.pop_front() {
-        Some(Token::Const(constant)) => Ok((Factor::Int(constant), state)),
+        Some(Token::Const(constant)) => Ok((state, Factor::Int(constant))),
         Some(token) => Err(format!("Expected constant found: {token}")),
         None => Err(String::from("Unexpected end of input: expected factor")),
     }
 }
 
-fn consume_expr(mut state: State) -> FactorResult {
+fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
     match state.tokens.pop_front() {
-        Some(Token::LParen) => Ok(exprs::parse(state)?.map_first(|e| e.into())),
+        Some(Token::LParen) => Ok(exprs::parse(state)?.mapr(|e| e.into())),
         Some(token) => Err(format!("Expected `(` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected factor")),
     }
 }
 
-pub fn parse(state: State) -> FactorResult {
+pub fn parse(state: ParserState) -> ParseResult<Factor> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected factor")? {
         Token::Const(_) => consume_const(state),

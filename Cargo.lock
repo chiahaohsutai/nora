@@ -224,7 +224,6 @@ dependencies = [
  "nanoid-dictionary",
  "regex",
  "tempfile",
- "ternop",
  "tracing",
  "tracing-subscriber",
 ]
@@ -405,12 +404,6 @@ dependencies = [
  "rustix",
  "windows-sys 0.60.2",
 ]
-
-[[package]]
-name = "ternop"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d4ae32d0a4605a89c28534371b056919c12e7a070ee07505af75130ff030111"
 
 [[package]]
 name = "thread_local"

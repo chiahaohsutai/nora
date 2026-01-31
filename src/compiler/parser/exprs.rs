@@ -1,9 +1,5 @@
-use ternop::ternary;
-
 use super::super::tokenizer::Token;
-use super::{ParserResult, State, TupleExt, factors};
-
-type ExprResult = ParserResult<Expr>;
+use super::{ParseResult, ParserState, TupleExt, factors};
 
 enum BinOp {
     Add,
@@ -199,49 +195,53 @@ impl TryFrom<&Token> for Op {
     }
 }
 
-fn consume_ternary(mut state: State, operand: Expr) -> ExprResult {
+fn consume_ternary(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
     let token = state.tokens.pop_front();
     match token.ok_or("Unexpected end of input: expected expression")? {
         Token::Eroteme => {
-            let (then, mut state) = consume_and_climb(state, 0)?;
-            let (otherwise, state) = match state.tokens.pop_front() {
+            let (mut state, then) = consume_and_climb(state, 0)?;
+            let (state, otherwise) = match state.tokens.pop_front() {
                 Some(Token::Colon) => consume_and_climb(state, 0)?,
                 Some(token) => return Err(format!("Expected `:` found: {token}")),
                 None => return Err(format!("Unexpected end of input: expected `:`")),
             };
-            Ok((Expr::Tern(Ternary::new(operand, then, otherwise)), state))
+            Ok((state, Expr::Tern(Ternary::new(operand, then, otherwise))))
         }
         token => Err(format!("Expected `?` found: {token}")),
     }
 }
 
-fn consume_expr(mut state: State, operand: Expr) -> ExprResult {
+fn consume_expr(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
     let token = state
         .tokens
         .pop_front()
         .ok_or(String::from("Unexpected end of input: expected expression"))?;
 
     let op = BinOp::try_from(&token)?;
-    let precedence = ternary!(is_assignment(&op), op.precedence(), op.precedence() + 1);
+    let precedence = if is_assignment(&op) {
+        op.precedence()
+    } else {
+        op.precedence() + 1
+    };
 
-    let (expr, state) = consume_and_climb(state, precedence)?;
-    Ok((Expr::Bin(BinExpr::new(operand, op, expr)), state))
+    let (state, expr) = consume_and_climb(state, precedence)?;
+    Ok((state, Expr::Bin(BinExpr::new(operand, op, expr))))
 }
 
-fn consume_and_climb(state: State, precedence: u64) -> ExprResult {
-    let (mut lhs, mut state) = factors::parse(state)?.map_first(Expr::from);
+fn consume_and_climb(state: ParserState, precedence: u64) -> ParseResult<Expr> {
+    let (mut state, mut lhs) = factors::parse(state)?.mapr(Expr::from);
     let mut op = state.tokens.front().map(|t| Op::try_from(t).ok()).flatten();
 
     while op.as_ref().is_some_and(|op| op.precedence() >= precedence) {
-        (lhs, state) = match op.as_ref().unwrap() {
+        (state, lhs) = match op.as_ref().unwrap() {
             Op::Ternary => consume_ternary(state, lhs)?,
             Op::BinOp(_) => consume_expr(state, lhs)?,
         };
         op = state.tokens.front().map(|t| Op::try_from(t).ok()).flatten()
     }
-    Ok((lhs.into(), state))
+    Ok((state, lhs.into()))
 }
 
-pub fn parse(state: State) -> ExprResult {
+pub fn parse(state: ParserState) -> ParseResult<Expr> {
     consume_and_climb(state, 0)
 }
