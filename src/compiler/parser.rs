@@ -40,6 +40,12 @@ impl AsRef<str> for Scope {
     }
 }
 
+impl From<&Scope> for String {
+    fn from(value: &Scope) -> Self {
+        String::from(value.as_ref())
+    }
+}
+
 struct State {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,

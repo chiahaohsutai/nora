@@ -1,3 +1,5 @@
+use std::fmt;
+
 use super::super::tokenizer::Token;
 use super::{ParserResult, State, blocks, decls, exprs};
 
@@ -93,11 +95,17 @@ pub enum Stmt {
     For(For),
 }
 
+fn expected(value: &str, found: Option<Token>) -> String {
+    match found {
+        Some(token) => format!("Expected `{value}` found: {token}"),
+        None => format!("Unexpected end of input: expected `{value}`"),
+    }
+}
+
 fn consume_null(mut state: State) -> StmtResult {
     match state.tokens.pop_front() {
         Some(Token::Semicolon) => Ok((Stmt::Null, state)),
-        Some(token) => Err(format!("Expected `;` found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `;`")),
+        token => Err(expected(";", token)),
     }
 }
 
@@ -107,12 +115,10 @@ fn consume_return(mut state: State) -> StmtResult {
             let (expr, mut state) = exprs::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((Stmt::Return(expr), state)),
-                Some(token) => return Err(format!("Expected `;` found: {token}")),
-                None => return Err(String::from("Unexpected end of input: expected `;`")),
+                token => Err(expected(";", token)),
             }
         }
-        Some(token) => Err(format!("Expected `return` found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `return`")),
+        token => Err(expected("return", token)),
     }
 }
 
@@ -120,28 +126,22 @@ fn consume_break(mut state: State) -> StmtResult {
     match state.tokens.pop_front() {
         Some(Token::Break) => match state.tokens.pop_front() {
             Some(Token::Semicolon) => Ok((Stmt::Break(None), state)),
-            Some(token) => Err(format!("Expected `;` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `;`")),
+            token => Err(expected(";", token)),
         },
-        Some(token) => Err(format!("Expected `break` found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `break`")),
+        token => Err(expected("break", token)),
     }
 }
 
 fn consume_continue(mut state: State) -> StmtResult {
     match state.tokens.pop_front() {
         Some(Token::Continue) => {
-            let label = state
-                .current_loop()
-                .map(|scope| String::from(scope.as_ref()));
+            let label = state.current_loop().map(String::from);
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((Stmt::Continue(label), state)),
-                Some(token) => return Err(format!("Expected `;` found: {token}")),
-                None => return Err(String::from("Unexpected end of input: expected `;`")),
+                token => Err(expected(";", token)),
             }
         }
-        Some(token) => Err(format!("Expected `continue` found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `continue`")),
+        token => Err(expected("continue", token)),
     }
 }
 
@@ -152,11 +152,9 @@ fn consume_label(mut state: State) -> StmtResult {
                 let (stmt, state) = parse(state)?;
                 Ok((Stmt::Label(Label::new(ident, stmt)), state))
             }
-            Some(token) => return Err(format!("Expected `:` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `:`")),
+            token => Err(expected(":", token)),
         },
-        Some(token) => return Err(format!("Expected identifier found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `label`")),
+        token => Err(expected("identifier", token)),
     }
 }
 
@@ -165,34 +163,41 @@ fn consume_goto(mut state: State) -> StmtResult {
         Some(Token::Goto) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((Stmt::Goto(ident), state)),
-                Some(token) => return Err(format!("Expected `;` found: {token}")),
-                None => return Err(String::from("Unexpected end of input: expected `;`")),
+                token => Err(expected(";", token)),
             },
-            Some(token) => return Err(format!("Expected identifier found: {token}")),
-            None => return Err(String::from("Unexpected end of input: expected identifier")),
+            token => Err(expected("identifier", token)),
         },
-        Some(token) => return Err(format!("Expected `goto` found: {token}")),
-        None => return Err(String::from("Unexpected end of input: expected `goto`")),
+        token => Err(expected("goto", token)),
     }
 }
 
 fn consume_block(mut state: State) -> StmtResult {
     match state.tokens.pop_front() {
         Some(Token::LBrace) => {
-            let (block, state) = blocks::parse(state)?;
+            let (block, mut state) = blocks::parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::RBrace) => Ok((Stmt::Comp(block), state)),
-                Some(token) => return Err(format!("Expected `}}` found: {token}")),
-                None => return Err(String::from("Unexpected end of input: expected `}`")),
+                token => Err(expected("}", token)),
             }
         }
-        Some(token) => return Err(format!("Expected `{{` found: {token}")),
-        None => return Err(String::from("Unexpected end of input: expected: `{`")),
+        token => Err(expected("{", token)),
     }
 }
 
 fn consume_if(mut state: State) -> StmtResult {
-    todo!()
+    match state.tokens.pop_front() {
+        Some(Token::If) => match state.tokens.pop_front() {
+            Some(Token::LParen) => {
+                let (cond, mut state) = exprs::parse(state)?;
+                match state.tokens.pop_front() {
+                    Some(Token::RParen) => todo!(),
+                    token => Err(expected(")", token)),
+                }
+            }
+            token => Err(expected("(", token)),
+        },
+        token => Err(expected("if", token)),
+    }
 }
 
 pub fn parse(state: State) -> StmtResult {
