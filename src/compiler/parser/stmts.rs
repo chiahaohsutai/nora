@@ -1,6 +1,4 @@
-use std::fmt;
-
-use super::super::tokenizer::Token;
+use super::super::{generate_tag, tokenizer::Token};
 use super::{ParseResult, ParserState, blocks, decls, exprs};
 
 enum ForInit {
@@ -50,6 +48,14 @@ struct While {
     id: String,
     cond: exprs::Expr,
     body: Box<Stmt>,
+}
+
+impl While {
+    #[rustfmt::skip]
+    fn new(cond: exprs::Expr, body: Stmt) -> Self {
+        let id = generate_tag("while.loop");
+        Self { id, cond, body: Box::new(body) }
+    }
 }
 
 enum Case {
@@ -237,8 +243,16 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
-fn consume_while(state: ParserState) -> ParseResult<Stmt> {
-    todo!()
+fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.pop_front() {
+        Some(Token::While) => {
+            let (state, cond) = consume_cond(state)?;
+            let (state, body) = parse(state)?;
+            Ok((state, Stmt::While(While::new(cond, body))))
+        }
+        Some(token) => Err(format!("Expected `while` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `while`")),
+    }
 }
 
 fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
