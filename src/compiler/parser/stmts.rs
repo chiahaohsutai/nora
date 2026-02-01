@@ -126,11 +126,14 @@ fn consume_return(mut state: ParserState) -> ParseResult<Stmt> {
 
 fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
-        Some(Token::Break) => match state.tokens.pop_front() {
-            Some(Token::Semicolon) => Ok((state, Stmt::Break(None))),
-            Some(token) => Err(format!("Expected `;` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `;`")),
-        },
+        Some(Token::Break) => {
+            let label = state.scopes.back().map(|scope| scope.label().into());
+            match state.tokens.pop_front() {
+                Some(Token::Semicolon) => Ok((state, Stmt::Break(label))),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
+            }
+        }
         Some(token) => Err(format!("Expected `break` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `{`")),
     }
@@ -155,7 +158,8 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Ident(ident)) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
-                let (state, stmt) = parse(state)?;
+                let (mut state, stmt) = parse(state)?;
+                state.labels.push_back(ident.clone());
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
             Some(token) => Err(format!("Expected `:` found: {token}")),
@@ -170,7 +174,10 @@ fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Goto) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
-                Some(Token::Semicolon) => Ok((state, Stmt::Goto(ident))),
+                Some(Token::Semicolon) => {
+                    let _ = state.jumps.insert(ident.clone());
+                    Ok((state, Stmt::Goto(ident)))
+                }
                 Some(token) => Err(format!("Expected `;` found: {token}")),
                 None => Err(String::from("Unexpected end of input: expected `;`")),
             },
@@ -230,6 +237,10 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_while(state: ParserState) -> ParseResult<Stmt> {
+    todo!()
+}
+
 fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     let (mut state, expr) = exprs::parse(state)?;
     match state.tokens.pop_front() {
@@ -256,6 +267,6 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::Continue => consume_continue(state),
         Token::Goto => consume_goto(state),
         Token::Ident(_) => consume_label(state),
-        token => todo!(),
+        _ => consume_expr(state),
     }
 }

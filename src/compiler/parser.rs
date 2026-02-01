@@ -49,7 +49,8 @@ impl Scope {
 struct ParserState {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,
-    labels: HashSet<String>,
+    jumps: HashSet<String>,
+    labels: VecDeque<String>,
 }
 
 impl ParserState {
