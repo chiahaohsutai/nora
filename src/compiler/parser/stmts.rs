@@ -1,5 +1,5 @@
 use super::super::{generate_tag, tokenizer::Token};
-use super::{ParseResult, ParserState, blocks, decls, exprs};
+use super::{ParseResult, ParserState, Scope, blocks, decls, exprs};
 
 enum ForInit {
     Decl(decls::Decl),
@@ -52,9 +52,8 @@ struct While {
 
 impl While {
     #[rustfmt::skip]
-    fn new(cond: exprs::Expr, body: Stmt) -> Self {
-        let id = generate_tag("while.loop");
-        Self { id, cond, body: Box::new(body) }
+    fn new(id: &str, cond: exprs::Expr, body: Stmt) -> Self {
+        Self { id: id.into(), cond, body: Box::new(body) }
     }
 }
 
@@ -247,13 +246,37 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::While) => {
             let (state, cond) = consume_cond(state)?;
-            let (state, body) = parse(state)?;
-            Ok((state, Stmt::While(While::new(cond, body))))
+            let (mut state, body) = parse(state)?;
+            let id = generate_tag("while.loop");
+            state.scopes.push_back(Scope::Loop(id.to_string()));
+            Ok((state, Stmt::While(While::new(&id, cond, body))))
         }
         Some(token) => Err(format!("Expected `while` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `while`")),
     }
 }
+
+fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.pop_front() {
+        Some(Token::Do) => {
+            let (mut state, body) = parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::While) => {
+                    let (mut state, cond) = consume_cond(state)?;
+                    let id = generate_tag("do.while.loop");
+                    state.scopes.push_back(Scope::Loop(id.to_string()));
+                    Ok((state, Stmt::DoWhile(While::new(&id, cond, body))))
+                }
+                Some(token) => Err(format!("Expected `while` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `while`")),
+            }
+        }
+        Some(token) => Err(format!("Expected `do` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `do`")),
+    }
+}
+
+
 
 fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     let (mut state, expr) = exprs::parse(state)?;
@@ -271,8 +294,8 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::LBrace => consume_block(state),
         Token::Return => consume_return(state),
         Token::If => consume_if(state),
-        Token::While => todo!(),
-        Token::Do => todo!(),
+        Token::While => consume_while(state),
+        Token::Do => consume_dowhile(state),
         Token::For => todo!(),
         Token::Switch => todo!(),
         Token::Case => todo!(),

@@ -1,7 +1,5 @@
 use std::collections::{HashSet, VecDeque};
-use std::fmt;
 
-use super::generate_tag;
 use super::tokenizer::Token;
 
 mod blocks;
