@@ -88,6 +88,24 @@ struct For {
     body: Box<Stmt>,
 }
 
+impl For {
+    fn new(
+        id: &str,
+        init: ForInit,
+        cond: Option<exprs::Expr>,
+        post: Option<exprs::Expr>,
+        body: Stmt,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            init,
+            cond,
+            post,
+            body: Box::new(body),
+        }
+    }
+}
+
 pub enum Stmt {
     Null,
     Return(exprs::Expr),
@@ -276,7 +294,82 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_for_init(mut state: ParserState) -> ParseResult<ForInit> {
+    match state.tokens.front() {
+        Some(Token::Int) => {
+            let (state, decl) = decls::parse(state)?;
+            Ok((state, ForInit::Decl(decl)))
+        }
+        Some(Token::Semicolon) => {
+            let _ = state.tokens.pop_front();
+            Ok((state, ForInit::Expr(None)))
+        }
+        Some(_) => {
+            let (mut state, expr) = exprs::parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::Semicolon) => Ok((state, ForInit::Expr(Some(expr)))),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
+            }
+        }
+        None => Err("Unexpected end of input: expected decl or expr".into()),
+    }
+}
 
+fn consume_for_cond(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> {
+    match state.tokens.front() {
+        Some(Token::Semicolon) => {
+            let _ = state.tokens.pop_front();
+            Ok((state, None))
+        }
+        Some(_) => {
+            let (mut state, expr) = exprs::parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::Semicolon) => Ok((state, Some(expr))),
+                Some(token) => Err(format!("Expected `;` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `;`")),
+            }
+        }
+        None => Err("Unexpected end of input: expected expr or `;`".into()),
+    }
+}
+
+fn consume_for_post(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> {
+    match state.tokens.front() {
+        Some(Token::RParen) => Ok((state, None)),
+        Some(_) => {
+            let (state, expr) = exprs::parse(state)?;
+            Ok((state, Some(expr)))
+        }
+        None => Err("Unexpected end of input: expected expr or `;`".into()),
+    }
+}
+
+fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.pop_front() {
+        Some(Token::For) => match state.tokens.pop_front() {
+            Some(Token::LParen) => {
+                let (state, init) = consume_for_init(state)?;
+                let (state, cond) = consume_for_cond(state)?;
+                let (mut state, post) = consume_for_post(state)?;
+                match state.tokens.pop_front() {
+                    Some(Token::RParen) => {
+                        let (mut state, body) = parse(state)?;
+                        let id = generate_tag("for.loop");
+                        state.scopes.push_back(Scope::Loop(id.to_string()));
+                        Ok((state, Stmt::For(For::new(&id, init, cond, post, body))))
+                    }
+                    Some(token) => Err(format!("Expected `)` found: {token}")),
+                    None => Err(String::from("Unexpected end of input: expected `)`")),
+                }
+            }
+            Some(token) => Err(format!("Expected `(` found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected `(`")),
+        },
+        Some(token) => Err(format!("Expected `for` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `for`")),
+    }
+}
 
 fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     let (mut state, expr) = exprs::parse(state)?;
@@ -296,7 +389,7 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::If => consume_if(state),
         Token::While => consume_while(state),
         Token::Do => consume_dowhile(state),
-        Token::For => todo!(),
+        Token::For => consume_for(state),
         Token::Switch => todo!(),
         Token::Case => todo!(),
         Token::Default => todo!(),

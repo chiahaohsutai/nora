@@ -1,4 +1,4 @@
-use super::{blocks, exprs};
+use super::{ParseResult, ParserState, blocks, exprs};
 
 struct VarDecl {
     name: String,
@@ -14,4 +14,8 @@ pub struct FnDecl {
 pub enum Decl {
     FnDecl(FnDecl),
     VarDecl(VarDecl),
+}
+
+pub fn parse(state: ParserState) -> ParseResult<Decl> {
+    todo!()
 }
