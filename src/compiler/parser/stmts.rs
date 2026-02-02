@@ -1,3 +1,5 @@
+use crate::compiler::parser::exprs::Expr;
+
 use super::super::{generate_tag, tokenizer::Token};
 use super::{ParseResult, ParserState, Scope, blocks, decls, exprs};
 
@@ -70,9 +72,16 @@ struct Switch {
 }
 
 struct Clause {
-    parent: String,
+    parent: Option<String>,
     value: exprs::Expr,
     body: Box<Stmt>,
+}
+
+impl Clause {
+    #[rustfmt::skip]
+    fn new(parent: Option<String>, value: exprs::Expr, body: Stmt) -> Self {
+        Self { parent, value, body: Box::new(body)}
+    }
 }
 
 struct Default {
@@ -380,6 +389,25 @@ fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.pop_front() {
+        Some(Token::Case) => {
+            let (mut state, expr) = exprs::parse(state)?;
+            match state.tokens.pop_front() {
+                Some(Token::Colon) => {
+                    let parent = state.current_switch().map(|scope| scope.label().into());
+                    let (state, body) = parse(state)?;
+                    Ok((state, Stmt::Case(Clause::new(parent, expr, body))))
+                }
+                Some(token) => Err(format!("Expected `:` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `:`")),
+            }
+        }
+        Some(token) => Err(format!("Expected `case` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `case`")),
+    }
+}
+
 pub fn parse(state: ParserState) -> ParseResult<Stmt> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected stmt")? {
@@ -391,7 +419,7 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::Do => consume_dowhile(state),
         Token::For => consume_for(state),
         Token::Switch => todo!(),
-        Token::Case => todo!(),
+        Token::Case => consume_case(state),
         Token::Default => todo!(),
         Token::Break => consume_break(state),
         Token::Continue => consume_continue(state),
