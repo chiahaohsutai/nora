@@ -71,6 +71,13 @@ struct Switch {
     cases: Vec<Case>,
 }
 
+impl Switch {
+    #[rustfmt::skip]
+    fn new(id: String, value: exprs::Expr, body: Stmt) -> Self {
+        Self { id, value, body: Box::new(body), cases: vec![]}
+    }
+}
+
 struct Clause {
     parent: Option<String>,
     value: exprs::Expr,
@@ -431,6 +438,30 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.pop_front() {
+        Some(Token::Switch) => match state.tokens.pop_front() {
+            Some(Token::LParen) => {
+                let (mut state, expr) = exprs::parse(state)?;
+                match state.tokens.pop_front() {
+                    Some(Token::RParen) => {
+                        let (mut state, body) = parse(state)?;
+                        let id = generate_tag("switch");
+                        state.scopes.push_back(Scope::Switch(id.to_string()));
+                        Ok((state, Stmt::Switch(Switch::new(id, expr, body))))
+                    }
+                    Some(token) => Err(format!("Expected `)` found: {token}")),
+                    None => Err(String::from("Unexpected end of input: expected `)`")),
+                }
+            }
+            Some(token) => Err(format!("Expected `(` found: {token}")),
+            None => Err(String::from("Unexpected end of input: expected `(`")),
+        },
+        Some(token) => Err(format!("Expected `switch` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `switch`")),
+    }
+}
+
 pub fn parse(state: ParserState) -> ParseResult<Stmt> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected stmt")? {
@@ -441,7 +472,7 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::While => consume_while(state),
         Token::Do => consume_dowhile(state),
         Token::For => consume_for(state),
-        Token::Switch => todo!(),
+        Token::Switch => consume_switch(state),
         Token::Case => consume_case(state),
         Token::Default => consume_default(state),
         Token::Break => consume_break(state),
