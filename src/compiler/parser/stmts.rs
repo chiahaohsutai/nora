@@ -426,8 +426,8 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
             Some(token) => Err(format!("Expected `:` found: {token}")),
             None => Err(String::from("Unexpected end of input: expected `:`")),
         },
-        Some(token) => Err(format!("Expected `case` found: {token}")),
-        None => Err(String::from("Unexpected end of input: expected `case`")),
+        Some(token) => Err(format!("Expected `default` found: {token}")),
+        None => Err(String::from("Unexpected end of input: expected `default`")),
     }
 }
 
