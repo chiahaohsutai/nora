@@ -197,7 +197,7 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Ident(ident)) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
-                let (mut state, stmt) = parse(state, false)?;
+                let (mut state, stmt) = parse(state)?;
                 state.labels.push_back(ident.clone());
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
@@ -262,10 +262,10 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::If) => {
             let (state, cond) = consume_cond(state)?;
-            let (mut state, then) = parse(state, false)?;
+            let (mut state, then) = parse(state)?;
             if let Some(Token::Else) = state.tokens.front() {
                 let _ = state.tokens.pop_front();
-                let (state, otherwise) = parse(state, false)?;
+                let (state, otherwise) = parse(state)?;
                 Ok((state, Stmt::If(If::new(cond, then, Some(otherwise)))))
             } else {
                 Ok((state, Stmt::If(If::new(cond, then, None))))
@@ -280,7 +280,7 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::While) => {
             let (state, cond) = consume_cond(state)?;
-            let (mut state, body) = parse(state, false)?;
+            let (mut state, body) = parse(state)?;
             let id = generate_tag("while.loop");
             state.scopes.push_back(Scope::Loop(id.to_string()));
             Ok((state, Stmt::While(While::new(&id, cond, body))))
@@ -293,7 +293,7 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
 fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Do) => {
-            let (mut state, body) = parse(state, false)?;
+            let (mut state, body) = parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::While) => {
                     let (mut state, cond) = consume_cond(state)?;
@@ -370,7 +370,7 @@ fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
                 let (mut state, post) = consume_for_post(state)?;
                 match state.tokens.pop_front() {
                     Some(Token::RParen) => {
-                        let (mut state, body) = parse(state, false)?;
+                        let (mut state, body) = parse(state)?;
                         let id = generate_tag("for.loop");
                         state.scopes.push_back(Scope::Loop(id.to_string()));
                         Ok((state, Stmt::For(For::new(&id, init, cond, post, body))))
@@ -403,7 +403,7 @@ fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
             match state.tokens.pop_front() {
                 Some(Token::Colon) => {
                     let parent = state.current_switch().map(|scope| scope.label().into());
-                    let (state, body) = parse(state, false)?;
+                    let (state, body) = parse(state)?;
                     Ok((state, Stmt::Case(Clause::new(parent, expr, body))))
                 }
                 Some(token) => Err(format!("Expected `:` found: {token}")),
@@ -420,7 +420,7 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Default) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
                 let parent = state.current_switch().map(|scope| scope.label().into());
-                let (state, body) = parse(state, false)?;
+                let (state, body) = parse(state)?;
                 Ok((state, Stmt::Default(Default::new(parent, body))))
             }
             Some(token) => Err(format!("Expected `:` found: {token}")),
@@ -431,7 +431,7 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
-pub fn parse(state: ParserState, validate: bool) -> ParseResult<Stmt> {
+pub fn parse(state: ParserState) -> ParseResult<Stmt> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected stmt")? {
         Token::Semicolon => consume_null(state),
