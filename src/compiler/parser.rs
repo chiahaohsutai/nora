@@ -67,7 +67,7 @@ impl ParserState {
     }
 }
 
-pub struct Program(Vec<decls::FnDecl>);
+pub struct Program(Vec<decls::fun::Decl>);
 
 pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
     todo!()

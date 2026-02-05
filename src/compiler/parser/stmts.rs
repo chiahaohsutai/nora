@@ -1,15 +1,13 @@
-use crate::compiler::parser::exprs::Expr;
-
 use super::super::{generate_tag, tokenizer::Token};
 use super::{ParseResult, ParserState, Scope, blocks, decls, exprs};
 
 enum ForInit {
-    Decl(decls::Decl),
+    Decl(decls::var::Decl),
     Expr(Option<exprs::Expr>),
 }
 
-impl From<decls::Decl> for ForInit {
-    fn from(value: decls::Decl) -> Self {
+impl From<decls::var::Decl> for ForInit {
+    fn from(value: decls::var::Decl) -> Self {
         Self::Decl(value)
     }
 }
@@ -320,7 +318,7 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
 fn consume_for_init(mut state: ParserState) -> ParseResult<ForInit> {
     match state.tokens.front() {
         Some(Token::Int) => {
-            let (state, decl) = decls::parse(state)?;
+            let (state, decl) = decls::var::parse(state)?;
             Ok((state, ForInit::Decl(decl)))
         }
         Some(Token::Semicolon) => {

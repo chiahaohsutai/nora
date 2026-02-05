@@ -1,19 +1,11 @@
 use super::{ParseResult, ParserState, blocks, exprs};
 
-struct VarDecl {
-    name: String,
-    expr: Option<exprs::Expr>,
-}
-
-pub struct FnDecl {
-    name: String,
-    params: Vec<String>,
-    body: blocks::Block,
-}
+pub mod fun;
+pub mod var;
 
 pub enum Decl {
-    FnDecl(FnDecl),
-    VarDecl(VarDecl),
+    FnDecl(fun::Decl),
+    VarDecl(var::Decl),
 }
 
 pub fn parse(state: ParserState) -> ParseResult<Decl> {
