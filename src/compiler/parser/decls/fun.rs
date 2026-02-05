@@ -4,12 +4,12 @@ use super::super::{ParseResult, ParserState, blocks};
 pub struct Decl {
     name: String,
     params: Vec<String>,
-    body: blocks::Block,
+    body: Option<blocks::Block>,
 }
 
 impl Decl {
     #[rustfmt::skip]
-    fn new(name: String, params: Vec<String>, body: blocks::Block) -> Self {
+    fn new(name: String, params: Vec<String>, body: Option<blocks::Block>) -> Self {
         Self { name, params, body }
     }
 }
@@ -59,8 +59,13 @@ pub fn parse(mut state: ParserState) -> ParseResult<Decl> {
                     let (mut state, params) = consume_params(state)?;
                     match state.tokens.pop_front() {
                         Some(Token::RParen) => {
-                            let (state, body) = blocks::parse(state)?;
-                            Ok((state, Decl::new(ident, params, body)))
+                            if let Some(Token::Semicolon) = state.tokens.front() {
+                                let _ = state.tokens.pop_front();
+                                Ok((state, Decl::new(ident, params, None)))
+                            } else {
+                                let (state, body) = blocks::parse(state)?;
+                                Ok((state, Decl::new(ident, params, Some(body))))
+                            }
                         }
                         Some(token) => Err(format!("Expected `)` or intializer found: {token}")),
                         None => Err(String::from("Unexpected end of input: expected `)`")),
