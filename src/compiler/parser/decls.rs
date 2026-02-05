@@ -1,3 +1,4 @@
+use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, blocks, exprs};
 
 pub mod fun;
@@ -9,5 +10,11 @@ pub enum Decl {
 }
 
 pub fn parse(state: ParserState) -> ParseResult<Decl> {
-    todo!()
+    if let Some(Token::LParen) = state.tokens.get(2) {
+        let (state, decl) = fun::parse(state)?;
+        Ok((state, Decl::FnDecl(decl)))
+    } else {
+        let (state, decl) = var::parse(state)?;
+        Ok((state, Decl::VarDecl(decl)))
+    }
 }
