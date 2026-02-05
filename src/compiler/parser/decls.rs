@@ -1,5 +1,5 @@
 use super::super::tokenizer::Token;
-use super::{ParseResult, ParserState, blocks, exprs};
+use super::{ParseResult, ParserState};
 
 pub mod fun;
 pub mod var;
