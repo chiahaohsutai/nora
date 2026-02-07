@@ -62,6 +62,13 @@ struct FnCall {
     args: Vec<exprs::Expr>,
 }
 
+impl FnCall {
+    #[rustfmt::skip]
+    fn new(name: String, args:  Vec<exprs::Expr>) -> Self {
+        Self { name, args }
+    }
+}
+
 pub enum Factor {
     Int(u64),
     Ident(String),
@@ -100,8 +107,20 @@ impl From<Unary> for Factor {
     }
 }
 
-fn consume_args(mut state: ParserState) -> ParseResult<Factor> {
-    todo!()
+fn consume_args(state: ParserState) -> ParseResult<Vec<exprs::Expr>> {
+    let (mut state, mut expr) = exprs::parse(state)?;
+    let mut args = vec![expr];
+    while state.tokens.front().is_some_and(|t| t.ne(&Token::RParen)) {
+        match state.tokens.pop_front() {
+            Some(Token::Comma) => {
+                (state, expr) = exprs::parse(state)?;
+                args.push(expr);
+            }
+            Some(token) => return Err(format!("Expected `,` found: {token}")),
+            None => return Err(String::from("Unexpected end of input: expected `,`")),
+        }
+    }
+    Ok((state, args))
 }
 
 fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
@@ -112,7 +131,14 @@ fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
                 let factor = Factor::Ident(ident);
                 Ok((state, Unary::new(op, Fixity::Postfix, factor).into()))
             }
-            Some(Token::LParen) => consume_args(state),
+            Some(Token::LParen) => {
+                let (mut state, args) = consume_args(state)?;
+                match state.tokens.pop_front() {
+                    Some(Token::RParen) => Ok((state, Factor::FnCall(FnCall::new(ident, args)))),
+                    Some(token) => Err(format!("Expected `)` found: {token}")),
+                    None => Err(String::from("Unexpected end of input: expected `)`")),
+                }
+            }
             _ => Ok((state, Factor::Ident(ident))),
         },
         Some(token) => Err(format!("Expected identifier found: {token}")),
