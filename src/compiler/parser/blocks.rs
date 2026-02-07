@@ -16,25 +16,18 @@ impl Block {
     }
 }
 
-// match tokens.pop_front() {
-//             Some(tokenizer::Token::Delimiter(tokenizer::Delimiter::LeftBrace)) => {
-//                 let mut block: Vec<BlockItem> = Vec::new();
-//                 loop {
-//                     if let Some(tokenizer::Token::Delimiter(tokenizer::Delimiter::RightBrace)) =
-//                         tokens.front()
-//                     {
-//                         tokens.pop_front();
-//                         break Ok(Self(block));
-//                     }
-//                     let item = BlockItem::parse(tokens)?;
-//                     block.push(item);
-//                 }
-//             }
-//             _ => Err(String::from("Expected '{' at the start of fn body.")),
-//         }
-
-fn consume_item(state: ParserState) -> ParseResult<BlockItem> {
-    todo!()
+fn consume_item(mut state: ParserState) -> ParseResult<BlockItem> {
+    match state.tokens.front() {
+        Some(Token::Int) => {
+            let (state, decl) = decls::parse(state)?;
+            Ok((state, BlockItem::Decl(decl)))
+        }
+        Some(_) => {
+            let (state, stmt) = stmts::parse(state)?;
+            Ok((state, BlockItem::Stmt(stmt)))
+        }
+        None => Err(String::from("Unexpected end of input: expected block item")),
+    }
 }
 
 pub fn parse(mut state: ParserState) -> ParseResult<Block> {
