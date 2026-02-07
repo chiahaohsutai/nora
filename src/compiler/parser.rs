@@ -48,10 +48,19 @@ struct ParserState {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,
     jumps: HashSet<String>,
-    labels: VecDeque<String>,
+    labels: Vec<String>,
 }
 
 impl ParserState {
+    fn new(tokens: VecDeque<Token>) -> Self {
+        Self {
+            tokens,
+            scopes: VecDeque::new(),
+            jumps: HashSet::new(),
+            labels: Vec::new(),
+        }
+    }
+
     pub fn current_loop(&self) -> Option<&Scope> {
         self.scopes
             .iter()
@@ -70,5 +79,14 @@ impl ParserState {
 pub struct Program(Vec<decls::fun::Decl>);
 
 pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
-    todo!()
+    let tokens = VecDeque::from(tokens);
+    let mut state = ParserState::new(tokens);
+    let mut funs = Vec::new();
+
+    while state.tokens.front().is_some() {
+        let definition = decls::fun::parse(state)?;
+        state = definition.0;
+        funs.push(definition.1);
+    }
+    Ok(Program(funs))
 }
