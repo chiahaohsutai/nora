@@ -16,7 +16,7 @@ impl Block {
     }
 }
 
-fn consume_item(mut state: ParserState) -> ParseResult<BlockItem> {
+fn consume_item(state: ParserState) -> ParseResult<BlockItem> {
     match state.tokens.front() {
         Some(Token::Int) => {
             let (state, decl) = decls::parse(state)?;

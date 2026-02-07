@@ -1,4 +1,4 @@
-use std::{path::Path, str::FromStr};
+use std::str::FromStr;
 
 use clap::{ArgGroup, ArgMatches, Command, Id, arg};
 
