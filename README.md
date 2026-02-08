@@ -64,12 +64,10 @@ cargo run -- path/to/my_program.c
 
 ## Testing
 
-The [writing-a-c-compiler-tests](https://github.com/nlsandler/writing-a-c-compiler-tests/) suite is included as a submodule in the `tests/` directory and is configured to track the `main` branch. Because this project implements all **extra-credit features**, you should use the `--extra-credit` flag to verify the compiler's full functionality.
+This project uses the [writing-a-c-compiler-tests](https://github.com/nlsandler/writing-a-c-compiler-tests/) test suite. Please clone the repository and follow the repository's instructions to set up and run the tests.
 
 ```bash
-# 1. Initialize and pull the latest test cases
-git submodule update --init --remote --merge
-
-# 2. Run the test suite against the compiled binary
-cd tests
-./test_compiler ../target/debug/nora --extra-credit
+# Run the test suite against the compiled binary
+cd writing-a-c-compiler-tests
+./test_compiler ../path/to/project/binary --extra-credit
+```
