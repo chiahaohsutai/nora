@@ -1,5 +1,4 @@
 use std::fmt;
-use std::sync::LazyLock;
 
 use regex::Regex;
 
@@ -9,11 +8,6 @@ const OPS: &str = r"(?:<<=|>>=|\+=|-=|/=|\*=|%=|&=|\|=|\^=|<=|>=|--|\+\+|<<|>>|&
 const DELIMS: &str = r"(?:,|;|:|\?|\(|\)|\{|\})";
 const IDENTS: &str = r"(?:[a-zA-Z_]\w*)\b";
 const CONSTS: &str = r"(?:[0-9]+)\b";
-
-static RE: LazyLock<Regex> = LazyLock::new(|| {
-    let pattern = format!("^(?:{KWS}|{IDENTS}|{CONSTS}|{OPS}|{DELIMS})");
-    Regex::new(&pattern).unwrap()
-});
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
@@ -208,11 +202,21 @@ impl fmt::Display for Token {
 }
 
 pub fn tokenize<T: AsRef<str>>(input: T) -> Result<Vec<Token>, String> {
-    let word_boundry_re = Regex::new(r"\b").unwrap();
-    word_boundry_re
-        .split(input.as_ref())
-        .filter(|m| !m.trim().is_empty())
-        .map(|m| RE.find(m.trim()).ok_or(format!("Invalid token: {m}")))
-        .map(|m| m.map(|m| Token::from(m.as_str())))
-        .collect::<Result<Vec<Token>, String>>()
+    let pattern = format!(r"^(?:(?:\s+)|(?:{KWS}|{IDENTS}|{CONSTS}|{OPS}|{DELIMS}))");
+    let re = Regex::new(&pattern).unwrap();
+    
+    let mut tokens = Vec::new();
+    let mut i = 0;
+
+    while i < input.as_ref().len() {
+        let rest = &input.as_ref()[i..];
+        if let Some(capture) = re.find(rest) {
+            let capture = capture.as_str();
+            (!capture.trim().is_empty()).then(|| tokens.push(Token::from(capture)));
+            i += capture.len()
+        } else {
+            return Err(format!("Invalid token at index {i}"));
+        }
+    }
+    Ok(tokens)
 }
