@@ -157,6 +157,7 @@ pub enum Stmt {
     For(For),
 }
 
+#[instrument]
 fn consume_null(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consumeing null statment");
     match state.tokens.pop_front() {
@@ -166,6 +167,7 @@ fn consume_null(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_return(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming return statment");
     match state.tokens.pop_front() {
@@ -182,6 +184,7 @@ fn consume_return(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming break statment");
     match state.tokens.pop_front() {
@@ -198,6 +201,7 @@ fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_continue(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming continue statment");
     match state.tokens.pop_front() {
@@ -214,6 +218,7 @@ fn consume_continue(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming label statment");
     match state.tokens.pop_front() {
@@ -231,6 +236,7 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming goto statment");
     match state.tokens.pop_front() {
@@ -251,6 +257,7 @@ fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming block statement");
     match state.tokens.pop_front() {
@@ -267,6 +274,7 @@ fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_cond(mut state: ParserState) -> ParseResult<exprs::Expr> {
     debug!("Consuming conditional statment");
     match state.tokens.pop_front() {
@@ -283,6 +291,7 @@ fn consume_cond(mut state: ParserState) -> ParseResult<exprs::Expr> {
     }
 }
 
+#[instrument]
 fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming if statment");
     match state.tokens.pop_front() {
@@ -302,6 +311,7 @@ fn consume_if(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming while statment");
     match state.tokens.pop_front() {
@@ -317,6 +327,7 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming dowhile statment");
     match state.tokens.pop_front() {
@@ -338,6 +349,7 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_for_init(mut state: ParserState) -> ParseResult<ForInit> {
     debug!("Consuming forinit statment");
     match state.tokens.front() {
@@ -361,6 +373,7 @@ fn consume_for_init(mut state: ParserState) -> ParseResult<ForInit> {
     }
 }
 
+#[instrument]
 fn consume_for_cond(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> {
     debug!("Consuming forcond statment");
     match state.tokens.front() {
@@ -380,6 +393,7 @@ fn consume_for_cond(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> 
     }
 }
 
+#[instrument]
 fn consume_for_post(state: ParserState) -> ParseResult<Option<exprs::Expr>> {
     debug!("Consuming forpost statment");
     match state.tokens.front() {
@@ -392,6 +406,7 @@ fn consume_for_post(state: ParserState) -> ParseResult<Option<exprs::Expr>> {
     }
 }
 
+#[instrument]
 fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming for statment");
     match state.tokens.pop_front() {
@@ -419,6 +434,7 @@ fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming expression statment");
     let (mut state, expr) = exprs::parse(state)?;
@@ -429,6 +445,7 @@ fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming case statment");
     match state.tokens.pop_front() {
@@ -449,6 +466,7 @@ fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming default statment");
     match state.tokens.pop_front() {
@@ -466,6 +484,7 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming switch statment");
     match state.tokens.pop_front() {
@@ -491,6 +510,7 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 fn consume_identity(state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.front() {
         Some(Token::Colon) => consume_label(state),
