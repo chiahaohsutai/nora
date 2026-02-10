@@ -46,10 +46,10 @@ pub fn parse(mut state: ParserState) -> ParseResult<Block> {
                 state = item.0;
                 items.push(item.1);
             }
-            if let Some(Token::RBrace) = state.tokens.pop_front() {
-                Ok((state, Block::new(items)))
-            } else {
-                Err(String::from("Unexpected end of input: expected `}`"))
+            match state.tokens.pop_front() {
+                Some(Token::RBrace) => Ok((state, Block::new(items))),
+                Some(token) => Err(format!("Expected `}}` found: {token}")),
+                None => Err("Unexpected end of input: expected `}`".into()),
             }
         }
         Some(token) => Err(format!("Expected `{{` found: {token}")),
