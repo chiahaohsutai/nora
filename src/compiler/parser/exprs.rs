@@ -1,4 +1,4 @@
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, TupleExt, factors};
@@ -203,6 +203,7 @@ impl TryFrom<&Token> for Op {
 }
 
 fn consume_ternary(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
+    debug!("Consuming ternary expression");
     let token = state.tokens.pop_front();
     match token.ok_or("Unexpected end of input: expected expression")? {
         Token::Eroteme => {
@@ -218,7 +219,8 @@ fn consume_ternary(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
     }
 }
 
-fn consume_expr(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
+fn consume_bin_expr(mut state: ParserState, operand: Expr) -> ParseResult<Expr> {
+    debug!("Consuming binary expression");
     let token = state
         .tokens
         .pop_front()
@@ -242,7 +244,7 @@ fn consume_and_climb(state: ParserState, precedence: u64) -> ParseResult<Expr> {
     while op.as_ref().is_some_and(|op| op.precedence() >= precedence) {
         (state, lhs) = match op.as_ref().unwrap() {
             Op::Ternary => consume_ternary(state, lhs)?,
-            Op::BinOp(_) => consume_expr(state, lhs)?,
+            Op::BinOp(_) => consume_bin_expr(state, lhs)?,
         };
         op = state.tokens.front().map(|t| Op::try_from(t).ok()).flatten()
     }
@@ -251,5 +253,6 @@ fn consume_and_climb(state: ParserState, precedence: u64) -> ParseResult<Expr> {
 
 #[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Expr> {
+    debug!("Consuming expression");
     consume_and_climb(state, 0)
 }

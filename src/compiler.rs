@@ -46,7 +46,6 @@ pub fn assemble<T: AsRef<str>>(input: T, stop_after: Option<Stage>) -> AssemblyR
     if matches!(stop_after, Some(Stage::Lex)) {
         return Ok(None);
     }
-    eprintln!("{:?}", tokens);
     let _ = parser::parse(tokens)?;
     if matches!(stop_after, Some(Stage::Parse)) {
         return Ok(None);

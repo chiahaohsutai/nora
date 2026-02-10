@@ -1,4 +1,4 @@
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::super::super::tokenizer::Token;
 use super::super::{ParseResult, ParserState, blocks};
@@ -19,6 +19,7 @@ impl Decl {
 
 #[instrument]
 fn consume_param(mut state: ParserState) -> ParseResult<String> {
+    debug!("Consuming function declaration");
     match state.tokens.pop_front() {
         Some(Token::Int) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => Ok((state, ident)),

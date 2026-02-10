@@ -1,4 +1,4 @@
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::super::super::tokenizer::Token;
 use super::super::{ParseResult, ParserState, exprs};
@@ -18,6 +18,7 @@ impl Decl {
 
 #[instrument]
 pub fn parse(mut state: ParserState) -> ParseResult<Decl> {
+    debug!("Consuming variable declaration");
     match state.tokens.pop_front() {
         Some(Token::Int) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {

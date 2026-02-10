@@ -1,4 +1,4 @@
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, decls, stmts};
@@ -21,6 +21,7 @@ impl Block {
 }
 
 fn consume_item(state: ParserState) -> ParseResult<BlockItem> {
+    debug!("Consuming block item");
     match state.tokens.front() {
         Some(Token::Int) => {
             let (state, decl) = decls::parse(state)?;
@@ -36,6 +37,7 @@ fn consume_item(state: ParserState) -> ParseResult<BlockItem> {
 
 #[instrument]
 pub fn parse(mut state: ParserState) -> ParseResult<Block> {
+    debug!("Consuming block");
     match state.tokens.pop_front() {
         Some(Token::LBrace) => {
             let mut items = vec![];

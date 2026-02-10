@@ -1,6 +1,6 @@
 use std::fmt;
 
-use tracing::instrument;
+use tracing::{debug, instrument};
 
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, TupleExt, exprs};
@@ -115,6 +115,7 @@ impl From<Unary> for Factor {
 }
 
 fn consume_args(state: ParserState) -> ParseResult<Vec<exprs::Expr>> {
+    debug!("Consuming args factor");
     let (mut state, mut expr) = exprs::parse(state)?;
     let mut args = vec![expr];
     while state.tokens.front().is_some_and(|t| t.ne(&Token::RParen)) {
@@ -131,6 +132,7 @@ fn consume_args(state: ParserState) -> ParseResult<Vec<exprs::Expr>> {
 }
 
 fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
+    debug!("Consuming identity factor");
     match state.tokens.pop_front() {
         Some(Token::Ident(ident)) => match state.tokens.front() {
             Some(Token::MinusMinus | Token::PlusPlus) => {
@@ -154,6 +156,7 @@ fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
 }
 
 fn consume_unary(mut state: ParserState) -> ParseResult<Factor> {
+    debug!("Consuming unary factor");
     let token = state
         .tokens
         .pop_front()
@@ -171,6 +174,7 @@ fn consume_const(mut state: ParserState) -> ParseResult<Factor> {
 }
 
 fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
+    debug!("Consuming expression factor");
     match state.tokens.pop_front() {
         Some(Token::LParen) => Ok(exprs::parse(state)?.mapr(|e| e.into())),
         Some(token) => Err(format!("Expected `(` found: {token}")),
@@ -180,6 +184,7 @@ fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
 
 #[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Factor> {
+    debug!("Consuming factor");
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected factor")? {
         Token::Const(_) => consume_const(state),
