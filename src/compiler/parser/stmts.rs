@@ -22,7 +22,7 @@ impl From<exprs::Expr> for ForInit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct If {
+pub struct If {
     cond: exprs::Expr,
     body: Box<Stmt>,
     otherwise: Option<Box<Stmt>>,
@@ -37,7 +37,7 @@ impl If {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Label {
+pub struct Label {
     name: String,
     body: Box<Stmt>,
 }
@@ -50,7 +50,7 @@ impl Label {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct While {
+pub struct While {
     id: String,
     cond: exprs::Expr,
     body: Box<Stmt>,
@@ -70,7 +70,7 @@ enum Case {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Switch {
+pub struct Switch {
     id: String,
     value: exprs::Expr,
     body: Box<Stmt>,
@@ -85,7 +85,7 @@ impl Switch {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Clause {
+pub struct Clause {
     parent: Option<String>,
     value: exprs::Expr,
     body: Box<Stmt>,
@@ -99,7 +99,7 @@ impl Clause {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Default {
+pub struct Default {
     parent: Option<String>,
     body: Box<Stmt>,
 }
@@ -112,7 +112,7 @@ impl Default {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct For {
+pub struct For {
     id: String,
     init: ForInit,
     cond: Option<exprs::Expr>,
@@ -367,7 +367,7 @@ fn consume_for_cond(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> 
     }
 }
 
-fn consume_for_post(mut state: ParserState) -> ParseResult<Option<exprs::Expr>> {
+fn consume_for_post(state: ParserState) -> ParseResult<Option<exprs::Expr>> {
     match state.tokens.front() {
         Some(Token::RParen) => Ok((state, None)),
         Some(_) => {

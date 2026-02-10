@@ -116,7 +116,7 @@ impl TryFrom<Option<&Token>> for BinOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Ternary {
+pub struct Ternary {
     cond: Box<Expr>,
     then: Box<Expr>,
     otherwise: Box<Expr>,
@@ -133,7 +133,7 @@ impl Ternary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct BinExpr {
+pub struct BinExpr {
     lhs: Box<Expr>,
     op: BinOp,
     rhs: Box<Expr>,

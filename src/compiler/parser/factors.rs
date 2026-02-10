@@ -48,7 +48,7 @@ enum Fixity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Unary {
+pub struct Unary {
     op: UnaryOp,
     fixity: Fixity,
     operand: Box<Factor>,
@@ -63,7 +63,7 @@ impl Unary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct FnCall {
+pub struct FnCall {
     name: String,
     args: Vec<exprs::Expr>,
 }
