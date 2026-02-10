@@ -491,6 +491,14 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn consume_identity(state: ParserState) -> ParseResult<Stmt> {
+    match state.tokens.front() {
+        Some(Token::Colon) => consume_label(state),
+        Some(_) => consume_expr(state),
+        None => Err("Unexpected end of input: expected expr or label".into()),
+    }
+}
+
 #[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming statment");
@@ -509,7 +517,7 @@ pub fn parse(state: ParserState) -> ParseResult<Stmt> {
         Token::Break => consume_break(state),
         Token::Continue => consume_continue(state),
         Token::Goto => consume_goto(state),
-        Token::Ident(_) => consume_label(state),
+        Token::Ident(_) => consume_identity(state),
         _ => consume_expr(state),
     }
 }
