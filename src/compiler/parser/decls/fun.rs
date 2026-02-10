@@ -19,7 +19,7 @@ impl Decl {
 
 #[instrument]
 fn consume_param(mut state: ParserState) -> ParseResult<String> {
-    debug!("Consuming function declaration");
+    debug!("Consuming function declaration param");
     match state.tokens.pop_front() {
         Some(Token::Int) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => Ok((state, ident)),
@@ -32,6 +32,7 @@ fn consume_param(mut state: ParserState) -> ParseResult<String> {
 }
 
 fn consume_params(mut state: ParserState) -> ParseResult<Vec<String>> {
+    debug!("Consuming function declaration params");
     if let Some(Token::Void) = state.tokens.front() {
         let _ = state.tokens.pop_front();
         Ok((state, Vec::new()))
@@ -57,6 +58,7 @@ fn consume_params(mut state: ParserState) -> ParseResult<Vec<String>> {
 }
 
 pub fn parse(mut state: ParserState) -> ParseResult<Decl> {
+    debug!("Consuming function declaration");
     match state.tokens.pop_front() {
         Some(Token::Int) => match state.tokens.pop_front() {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
