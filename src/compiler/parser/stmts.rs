@@ -258,16 +258,12 @@ fn consume_goto(mut state: ParserState) -> ParseResult<Stmt> {
 }
 
 #[instrument]
-fn consume_block(mut state: ParserState) -> ParseResult<Stmt> {
+fn consume_block(state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming block statement");
-    match state.tokens.pop_front() {
+    match state.tokens.front() {
         Some(Token::LBrace) => {
-            let (mut state, block) = blocks::parse(state)?;
-            match state.tokens.pop_front() {
-                Some(Token::RBrace) => Ok((state, Stmt::Comp(block))),
-                Some(token) => Err(format!("Expected `}}` found: {token}")),
-                None => Err(String::from("Unexpected end of input: expected `}`")),
-            }
+            let (state, block) = blocks::parse(state)?;
+            Ok((state, Stmt::Comp(block)))
         }
         Some(token) => Err(format!("Expected `{{` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `{`")),
