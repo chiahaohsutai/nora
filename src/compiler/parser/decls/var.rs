@@ -24,8 +24,12 @@ pub fn parse(mut state: ParserState) -> ParseResult<Decl> {
             Some(Token::Ident(ident)) => match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Decl::new(ident, None))),
                 Some(Token::Eq) => {
-                    let (state, expr) = exprs::parse(state)?;
-                    Ok((state, Decl::new(ident, Some(expr))))
+                    let (mut state, expr) = exprs::parse(state)?;
+                    match state.tokens.pop_front() {
+                        Some(Token::Semicolon) => Ok((state, Decl::new(ident, Some(expr)))),
+                        Some(token) => Err(format!("Expected `;` found: {token}")),
+                        None => Err("Unexpected end of input: expected `;`".into()),
+                    }
                 }
                 Some(token) => Err(format!("Expected `;` or intializer found: {token}")),
                 None => Err("Unexpected end of input: expected `;` or intializer".into()),
