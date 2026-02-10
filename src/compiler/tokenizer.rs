@@ -1,6 +1,7 @@
 use std::fmt;
 
 use regex::Regex;
+use tracing::debug;
 
 #[rustfmt::skip]
 const KWS: &str = r"\b(?:continue|switch|default|return|while|break|void|case|else|goto|for|int|if|do)\b";
@@ -119,15 +120,15 @@ impl From<&str> for Token {
             "int" => Self::Int,
             "void" => Self::Void,
             "return" => Self::Return,
-            "Goto" => Self::Goto,
-            "Do" => Self::Do,
-            "While" => Self::While,
-            "For" => Self::For,
-            "Break" => Self::Break,
-            "Continue" => Self::Continue,
-            "Switch" => Self::Switch,
-            "Case" => Self::Case,
-            "Default" => Self::Default,
+            "goto" => Self::Goto,
+            "go" => Self::Do,
+            "while" => Self::While,
+            "for" => Self::For,
+            "break" => Self::Break,
+            "continue" => Self::Continue,
+            "wwitch" => Self::Switch,
+            "case" => Self::Case,
+            "default" => Self::Default,
             s => match s.parse::<u64>() {
                 Ok(constant) => Self::Const(constant),
                 Err(_) => Self::Ident(String::from(s)),
@@ -204,7 +205,7 @@ impl fmt::Display for Token {
 pub fn tokenize<T: AsRef<str>>(input: T) -> Result<Vec<Token>, String> {
     let pattern = format!(r"^(?:(?:\s+)|(?:{KWS}|{IDENTS}|{CONSTS}|{OPS}|{DELIMS}))");
     let re = Regex::new(&pattern).unwrap();
-    
+
     let mut tokens = Vec::new();
     let mut i = 0;
 
