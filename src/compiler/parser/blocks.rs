@@ -1,11 +1,15 @@
+use tracing::instrument;
+
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, decls, stmts};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum BlockItem {
     Stmt(stmts::Stmt),
     Decl(decls::Decl),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Block {
     items: Vec<BlockItem>,
 }
@@ -30,6 +34,7 @@ fn consume_item(state: ParserState) -> ParseResult<BlockItem> {
     }
 }
 
+#[instrument]
 pub fn parse(mut state: ParserState) -> ParseResult<Block> {
     match state.tokens.pop_front() {
         Some(Token::LBrace) => {

@@ -1,8 +1,11 @@
 use std::fmt;
 
+use tracing::instrument;
+
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, TupleExt, exprs};
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum UnaryOp {
     Decr,
     Incr,
@@ -38,11 +41,13 @@ impl fmt::Display for UnaryOp {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Fixity {
     Prefix,
     Postfix,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Unary {
     op: UnaryOp,
     fixity: Fixity,
@@ -57,6 +62,7 @@ impl Unary {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct FnCall {
     name: String,
     args: Vec<exprs::Expr>,
@@ -69,6 +75,7 @@ impl FnCall {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Factor {
     Int(u64),
     Ident(String),
@@ -171,6 +178,7 @@ fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
     }
 }
 
+#[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Factor> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected factor")? {

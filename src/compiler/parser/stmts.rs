@@ -1,6 +1,9 @@
+use tracing::instrument;
+
 use super::super::{generate_tag, tokenizer::Token};
 use super::{ParseResult, ParserState, Scope, blocks, decls, exprs};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum ForInit {
     Decl(decls::var::Decl),
     Expr(Option<exprs::Expr>),
@@ -18,6 +21,7 @@ impl From<exprs::Expr> for ForInit {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct If {
     cond: exprs::Expr,
     body: Box<Stmt>,
@@ -32,6 +36,7 @@ impl If {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Label {
     name: String,
     body: Box<Stmt>,
@@ -44,6 +49,7 @@ impl Label {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct While {
     id: String,
     cond: exprs::Expr,
@@ -57,11 +63,13 @@ impl While {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Case {
     Int(u64, String),
     Default(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Switch {
     id: String,
     value: exprs::Expr,
@@ -76,6 +84,7 @@ impl Switch {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Clause {
     parent: Option<String>,
     value: exprs::Expr,
@@ -89,6 +98,7 @@ impl Clause {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Default {
     parent: Option<String>,
     body: Box<Stmt>,
@@ -101,6 +111,7 @@ impl Default {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct For {
     id: String,
     init: ForInit,
@@ -127,6 +138,7 @@ impl For {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Stmt {
     Null,
     Return(exprs::Expr),
@@ -206,8 +218,8 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
                 state.labels.push(ident.clone());
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
-            Some(token) => Err(format!("Expected `:` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `:`")),
+            Some(token) => Err(format!("Expected `:` after label, found: {token}")),
+            None => Err("Unexpected end of input after label: expected `:`".into()),
         },
         Some(token) => Err(format!("Expected identifier found: {token}")),
         None => Err(String::from("Unexpected end of input: expected identifier")),
@@ -411,8 +423,8 @@ fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
                     let (state, body) = parse(state)?;
                     Ok((state, Stmt::Case(Clause::new(parent, expr, body))))
                 }
-                Some(token) => Err(format!("Expected `:` found: {token}")),
-                None => Err(String::from("Unexpected end of input: expected `:`")),
+                Some(token) => Err(format!("Expected `:` after case, found: {token}")),
+                None => Err("Unexpected end of input after case: expected `:`".into()),
             }
         }
         Some(token) => Err(format!("Expected `case` found: {token}")),
@@ -428,8 +440,8 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
                 let (state, body) = parse(state)?;
                 Ok((state, Stmt::Default(Default::new(parent, body))))
             }
-            Some(token) => Err(format!("Expected `:` found: {token}")),
-            None => Err(String::from("Unexpected end of input: expected `:`")),
+            Some(token) => Err(format!("Expected `:` after default, found: {token}")),
+            None => Err("Unexpected end of input after default: expected `:`".into()),
         },
         Some(token) => Err(format!("Expected `default` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `default`")),
@@ -460,6 +472,7 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+#[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Stmt> {
     let token = state.tokens.front();
     match token.ok_or("Unexpected end of input: expected stmt")? {

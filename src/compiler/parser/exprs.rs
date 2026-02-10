@@ -1,6 +1,9 @@
+use tracing::instrument;
+
 use super::super::tokenizer::Token;
 use super::{ParseResult, ParserState, TupleExt, factors};
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum BinOp {
     Add,
     Div,
@@ -112,6 +115,7 @@ impl TryFrom<Option<&Token>> for BinOp {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Ternary {
     cond: Box<Expr>,
     then: Box<Expr>,
@@ -128,6 +132,7 @@ impl Ternary {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct BinExpr {
     lhs: Box<Expr>,
     op: BinOp,
@@ -141,6 +146,7 @@ impl BinExpr {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
     Fac(factors::Factor),
     Tern(Ternary),
@@ -170,6 +176,7 @@ fn is_assignment(op: &BinOp) -> bool {
     )
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 enum Op {
     Ternary,
     BinOp(BinOp),
@@ -242,6 +249,7 @@ fn consume_and_climb(state: ParserState, precedence: u64) -> ParseResult<Expr> {
     Ok((state, lhs.into()))
 }
 
+#[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Expr> {
     consume_and_climb(state, 0)
 }

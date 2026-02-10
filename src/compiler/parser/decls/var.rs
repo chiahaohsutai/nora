@@ -1,6 +1,9 @@
+use tracing::instrument;
+
 use super::super::super::tokenizer::Token;
 use super::super::{ParseResult, ParserState, exprs};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Decl {
     name: String,
     expr: Option<exprs::Expr>,
@@ -13,6 +16,7 @@ impl Decl {
     }
 }
 
+#[instrument]
 pub fn parse(mut state: ParserState) -> ParseResult<Decl> {
     match state.tokens.pop_front() {
         Some(Token::Int) => match state.tokens.pop_front() {

@@ -1,5 +1,7 @@
 use std::collections::{HashSet, VecDeque};
 
+use tracing::instrument;
+
 use super::tokenizer::Token;
 
 mod blocks;
@@ -30,6 +32,7 @@ impl<T, U> TupleExt<T, U> for (T, U) {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Scope {
     Loop(String),
     Switch(String),
@@ -44,6 +47,7 @@ impl Scope {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ParserState {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,
@@ -76,8 +80,10 @@ impl ParserState {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Program(Vec<decls::fun::Decl>);
 
+#[instrument]
 pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
     let tokens = VecDeque::from(tokens);
     let mut state = ParserState::new(tokens);
