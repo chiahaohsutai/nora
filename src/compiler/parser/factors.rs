@@ -176,7 +176,14 @@ fn consume_const(mut state: ParserState) -> ParseResult<Factor> {
 fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
     debug!("Consuming expression factor");
     match state.tokens.pop_front() {
-        Some(Token::LParen) => Ok(exprs::parse(state)?.mapr(|e| e.into())),
+        Some(Token::LParen) => {
+            let (mut state, expr) = exprs::parse(state)?.mapr(|e| e.into());
+            match state.tokens.pop_front() {
+                Some(Token::RParen) => Ok((state, expr)),
+                Some(token) => Err(format!("Expected `)` found: {token}")),
+                None => Err(String::from("Unexpected end of input: expected `)`")),
+            }
+        }
         Some(token) => Err(format!("Expected `(` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected factor")),
     }
