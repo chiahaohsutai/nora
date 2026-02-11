@@ -1,7 +1,7 @@
 use tracing::{debug, instrument};
 
 use super::super::{generate_tag, tokenizer::Token};
-use super::{ParseResult, ParserState, Scope, blocks, decls, exprs};
+use super::{ParseResult, ParserState, Scope, TupleExt, blocks, decls, exprs};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum ForInit {
@@ -350,17 +350,17 @@ fn consume_for_init(mut state: ParserState) -> ParseResult<ForInit> {
     debug!("Consuming forinit statment");
     match state.tokens.front() {
         Some(Token::Int) => {
-            let (state, decl) = decls::var::parse(state)?;
-            Ok((state, ForInit::Decl(decl)))
+            let (state, decl) = decls::var::parse(state)?.mapr(|decl| decl.into());
+            Ok((state, decl))
         }
         Some(Token::Semicolon) => {
             let _ = state.tokens.pop_front();
             Ok((state, ForInit::Expr(None)))
         }
         Some(_) => {
-            let (mut state, expr) = exprs::parse(state)?;
+            let (mut state, expr) = exprs::parse(state)?.mapr(|expr| expr.into());
             match state.tokens.pop_front() {
-                Some(Token::Semicolon) => Ok((state, ForInit::Expr(Some(expr)))),
+                Some(Token::Semicolon) => Ok((state, expr)),
                 Some(token) => Err(format!("Expected `;` found: {token}")),
                 None => Err(String::from("Unexpected end of input: expected `;`")),
             }
