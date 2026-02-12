@@ -116,6 +116,7 @@ impl From<&str> for Token {
             "?" => Self::Eroteme,
             "," => Self::Comma,
             "if" => Self::If,
+            "do" => Self::Do,
             "else" => Self::Else,
             "int" => Self::Int,
             "void" => Self::Void,
