@@ -508,10 +508,11 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
 
 #[instrument]
 fn consume_identity(state: ParserState) -> ParseResult<Stmt> {
-    match state.tokens.front() {
-        Some(Token::Colon) => consume_label(state),
-        Some(_) => consume_expr(state),
-        None => Err("Unexpected end of input: expected expr or label".into()),
+    debug!("Consuming identity");
+    match (state.tokens.get(0), state.tokens.get(1)) {
+        (Some(_), Some(Token::Colon)) => consume_label(state),
+        (Some(_), _) => consume_expr(state),
+        _ => Err("Unexpected end of input: expected expr or label".into()),
     }
 }
 
