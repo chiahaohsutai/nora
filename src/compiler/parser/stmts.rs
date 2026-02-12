@@ -334,7 +334,13 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
                     let (mut state, cond) = consume_cond(state)?;
                     let id = generate_tag("do.while.loop");
                     state.scopes.push_back(Scope::Loop(id.to_string()));
-                    Ok((state, Stmt::DoWhile(While::new(&id, cond, body))))
+                    match state.tokens.pop_front() {
+                        Some(Token::Semicolon) => {
+                            Ok((state, Stmt::DoWhile(While::new(&id, cond, body))))
+                        }
+                        Some(token) => Err(format!("Expected `;` found: {token}")),
+                        None => Err(String::from("Unexpected end of input: expected `;`")),
+                    }
                 }
                 Some(token) => Err(format!("Expected `while` found: {token}")),
                 None => Err(String::from("Unexpected end of input: expected `while`")),
