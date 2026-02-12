@@ -135,11 +135,6 @@ fn consume_ident(mut state: ParserState) -> ParseResult<Factor> {
     debug!("Consuming identity factor");
     match state.tokens.pop_front() {
         Some(Token::Ident(ident)) => match state.tokens.front() {
-            Some(Token::MinusMinus | Token::PlusPlus) => {
-                let op = UnaryOp::try_from(&state.tokens.pop_front().unwrap())?;
-                let factor = Factor::Ident(ident);
-                Ok((state, Unary::new(op, Fixity::Postfix, factor).into()))
-            }
             Some(Token::LParen) => {
                 let (mut state, args) = consume_args(state)?;
                 match state.tokens.pop_front() {
@@ -189,19 +184,28 @@ fn consume_expr(mut state: ParserState) -> ParseResult<Factor> {
     }
 }
 
+fn is_postfix_op(token: &Token) -> bool {
+    matches!(token, Token::MinusMinus | Token::PlusPlus)
+}
+
 #[instrument]
 pub fn parse(state: ParserState) -> ParseResult<Factor> {
     debug!("Consuming factor");
-    let token = state.tokens.front();
-    match token.ok_or("Unexpected end of input: expected factor")? {
-        Token::Const(_) => consume_const(state),
-        Token::Ident(_) => consume_ident(state),
-        Token::LParen => consume_expr(state),
-        Token::MinusMinus => consume_unary(state),
-        Token::PlusPlus => consume_unary(state),
-        Token::Minus => consume_unary(state),
-        Token::Bang => consume_unary(state),
-        Token::Tilde => consume_unary(state),
-        token => return Err(format!("Invalid factor: unexpected token `{token}`")),
+    let (mut state, mut factor) = match state.tokens.front() {
+        Some(Token::Const(_)) => consume_const(state),
+        Some(Token::Ident(_)) => consume_ident(state),
+        Some(Token::LParen) => consume_expr(state),
+        Some(Token::MinusMinus) => consume_unary(state),
+        Some(Token::PlusPlus) => consume_unary(state),
+        Some(Token::Minus) => consume_unary(state),
+        Some(Token::Bang) => consume_unary(state),
+        Some(Token::Tilde) => consume_unary(state),
+        Some(token) => return Err(format!("Invalid factor: unexpected token `{token}`")),
+        None => Err("Unexpected end of input: expected factor".into()),
+    }?;
+    while state.tokens.front().is_some_and(is_postfix_op) {
+        let op = UnaryOp::try_from(&state.tokens.pop_front().unwrap())?;
+        factor = Factor::Unary(Unary::new(op, Fixity::Postfix, factor))
     }
+    Ok((state, factor))
 }
