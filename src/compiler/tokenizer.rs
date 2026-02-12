@@ -127,7 +127,7 @@ impl From<&str> for Token {
             "for" => Self::For,
             "break" => Self::Break,
             "continue" => Self::Continue,
-            "wwitch" => Self::Switch,
+            "switch" => Self::Switch,
             "case" => Self::Case,
             "default" => Self::Default,
             s => match s.parse::<u64>() {
