@@ -54,6 +54,7 @@ struct ParserState {
     jumps: HashSet<String>,
     labels: HashSet<String>,
     dups: HashSet<String>,
+    errors: Vec<String>,
 }
 
 impl ParserState {
@@ -64,6 +65,7 @@ impl ParserState {
             jumps: HashSet::new(),
             labels: HashSet::new(),
             dups: HashSet::new(),
+            errors: Vec::new(),
         }
     }
 

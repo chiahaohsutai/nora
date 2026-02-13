@@ -190,6 +190,10 @@ fn consume_break(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Break) => {
             let label = state.scopes.back().map(|scope| scope.label().into());
+            if let None = label {
+                let e = "Found break stmt with no parent scope";
+                state.errors.push(e.into());
+            }
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Break(label))),
                 Some(token) => Err(format!("Expected `;` found: {token}")),
@@ -207,6 +211,10 @@ fn consume_continue(mut state: ParserState) -> ParseResult<Stmt> {
     match state.tokens.pop_front() {
         Some(Token::Continue) => {
             let label = state.current_loop().map(|scope| scope.label().into());
+            if let None = label {
+                let e = "Found continue stmt outside loop scope";
+                state.errors.push(e.into());
+            }
             match state.tokens.pop_front() {
                 Some(Token::Semicolon) => Ok((state, Stmt::Continue(label))),
                 Some(token) => Err(format!("Expected `;` found: {token}")),
@@ -458,7 +466,11 @@ fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
             match state.tokens.pop_front() {
                 Some(Token::Colon) => {
                     let parent = state.current_switch().map(|scope| scope.label().into());
-                    let (state, body) = parse(state)?;
+                    let (mut state, body) = parse(state)?;
+                    if let None = parent {
+                        let e = "Found case stmt outside switch stmt scope";
+                        state.errors.push(e.into());
+                    }
                     Ok((state, Stmt::Case(Clause::new(parent, expr, body))))
                 }
                 Some(token) => Err(format!("Expected `:` after case, found: {token}")),
@@ -477,7 +489,11 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Default) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
                 let parent = state.current_switch().map(|scope| scope.label().into());
-                let (state, body) = parse(state)?;
+                let (mut state, body) = parse(state)?;
+                if let None = parent {
+                    let e = "Found default stmt outside switch stmt scope";
+                    state.errors.push(e.into());
+                }
                 Ok((state, Stmt::Default(Default::new(parent, body))))
             }
             Some(token) => Err(format!("Expected `:` after default, found: {token}")),
