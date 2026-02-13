@@ -225,7 +225,9 @@ fn consume_label(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Ident(ident)) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
                 let (mut state, stmt) = parse(state)?;
-                state.labels.push(ident.clone());
+                if !state.labels.insert(ident.clone()) {
+                    state.dups.insert(ident.clone());
+                };
                 Ok((state, Stmt::Label(Label::new(ident, stmt))))
             }
             Some(token) => Err(format!("Expected `:` after label, found: {token}")),
