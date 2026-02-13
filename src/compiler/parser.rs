@@ -52,7 +52,8 @@ struct ParserState {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,
     jumps: HashSet<String>,
-    labels: Vec<String>,
+    labels: HashSet<String>,
+    dups: HashSet<String>,
 }
 
 impl ParserState {
@@ -61,7 +62,8 @@ impl ParserState {
             tokens,
             scopes: VecDeque::new(),
             jumps: HashSet::new(),
-            labels: Vec::new(),
+            labels: HashSet::new(),
+            dups: HashSet::new(),
         }
     }
 
@@ -94,12 +96,13 @@ pub fn parse(tokens: Vec<Token>, resolve: bool) -> Result<Program, String> {
         state = definition.0;
         funs.push(definition.1);
     }
-    if resolve {
-        let num_labels = state.labels.len();
-        let labels: HashSet<String> = state.labels.into_iter().collect();
-        if num_labels != labels.len() {
-            return Err("Found at least one duplicate label".into());
-        }
+
+    if resolve && state.dups.len() > 0 {
+        let dups = state.dups;
+        return Err(format!("Found at least one duplicate label: {dups:?}"));
+    } else if resolve && !state.jumps.is_subset(&state.labels) {
+        return Err("Found at least one jump stmt with no corresponding label".into());
     }
+
     Ok(Program(funs))
 }
