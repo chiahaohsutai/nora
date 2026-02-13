@@ -84,7 +84,7 @@ impl ParserState {
 pub struct Program(Vec<decls::fun::Decl>);
 
 #[instrument]
-pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
+pub fn parse(tokens: Vec<Token>, resolve: bool) -> Result<Program, String> {
     let tokens = VecDeque::from(tokens);
     let mut state = ParserState::new(tokens);
     let mut funs = Vec::new();
@@ -93,6 +93,13 @@ pub fn parse(tokens: Vec<Token>) -> Result<Program, String> {
         let definition = decls::fun::parse(state)?;
         state = definition.0;
         funs.push(definition.1);
+    }
+    if resolve {
+        let num_labels = state.labels.len();
+        let labels: HashSet<String> = state.labels.into_iter().collect();
+        if num_labels != labels.len() {
+            return Err("Found at least one duplicate label".into());
+        }
     }
     Ok(Program(funs))
 }
