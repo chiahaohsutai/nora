@@ -99,11 +99,21 @@ pub fn parse(tokens: Vec<Token>, resolve: bool) -> Result<Program, String> {
         funs.push(definition.1);
     }
 
-    if resolve && state.dups.len() > 0 {
-        let dups = state.dups;
-        return Err(format!("Found at least one duplicate label: {dups:?}"));
-    } else if resolve && !state.jumps.is_subset(&state.labels) {
-        return Err("Found at least one jump stmt with no corresponding label".into());
+    if resolve {
+        if state.dups.len() > 0 {
+            let dups = state.dups;
+            return Err(format!("Found at least one duplicate label: {dups:?}"));
+        }
+        if !state.jumps.is_subset(&state.labels) {
+            return Err("Found at least one jump stmt with no corresponding label".into());
+        }
+        if state.errors.len() > 0 {
+            let error = format!(
+                "Found the following errors while parsing:\n{}",
+                state.errors.join("\n")
+            );
+            return Err(error);
+        }
     }
 
     Ok(Program(funs))
