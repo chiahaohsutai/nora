@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use tracing::{debug, instrument};
 
 use super::super::super::{generate_tag, tokenizer::Token};

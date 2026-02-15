@@ -1,7 +1,6 @@
 use std::fmt;
 
 use regex::Regex;
-use tracing::debug;
 
 #[rustfmt::skip]
 const KWS: &str = r"\b(?:continue|switch|default|return|while|break|void|case|else|goto|for|int|if|do)\b";
