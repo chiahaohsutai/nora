@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use tracing::instrument;
 
@@ -55,6 +55,7 @@ struct ParserState {
     labels: HashSet<String>,
     dups: HashSet<String>,
     errors: Vec<String>,
+    vars: Vec<HashMap<String, String>>,
 }
 
 impl ParserState {
@@ -66,6 +67,7 @@ impl ParserState {
             labels: HashSet::new(),
             dups: HashSet::new(),
             errors: Vec::new(),
+            vars: Vec::new(),
         }
     }
 
@@ -81,6 +83,15 @@ impl ParserState {
             .iter()
             .rev()
             .find(|scope| matches!(scope, Scope::Switch(_)))
+    }
+
+    pub fn find_var(&self, name: &str) -> Option<&str> {
+        for vars in self.vars.iter().rev() {
+            if let Some(id) = vars.get(name) {
+                return Some(id);
+            }
+        }
+        None
     }
 }
 
