@@ -1,4 +1,6 @@
+use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::hash::Hash;
 
 use tracing::instrument;
 
@@ -47,7 +49,45 @@ impl Scope {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
+struct VarMap<K, V>(Vec<HashMap<K, V>>);
+
+impl<K, V> VarMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+    fn find<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        for env in self.0.iter().rev() {
+            if let Some(v) = env.get(k) {
+                return Some(v);
+            }
+        }
+        None
+    }
+    fn insert(&mut self, k: K, v: V) -> Option<V>
+    where
+        K: Eq + Hash,
+    {
+        self.0.last_mut().map(|map| map.insert(k, v)).flatten()
+    }
+
+    fn enter(&mut self) {
+        self.0.push(HashMap::new());
+    }
+
+    fn exit(&mut self) {
+        let _ = self.0.pop();
+    }
+}
+
+#[derive(Debug, Clone)]
 struct ParserState {
     tokens: VecDeque<Token>,
     scopes: VecDeque<Scope>,
@@ -55,7 +95,7 @@ struct ParserState {
     labels: HashSet<String>,
     dups: HashSet<String>,
     errors: Vec<String>,
-    vars: Vec<HashMap<String, String>>,
+    vars: VarMap<String, String>,
 }
 
 impl ParserState {
@@ -67,7 +107,7 @@ impl ParserState {
             labels: HashSet::new(),
             dups: HashSet::new(),
             errors: Vec::new(),
-            vars: Vec::new(),
+            vars: VarMap::new(),
         }
     }
 
@@ -83,15 +123,6 @@ impl ParserState {
             .iter()
             .rev()
             .find(|scope| matches!(scope, Scope::Switch(_)))
-    }
-
-    pub fn find_var(&self, name: &str) -> Option<&str> {
-        for vars in self.vars.iter().rev() {
-            if let Some(id) = vars.get(name) {
-                return Some(id);
-            }
-        }
-        None
     }
 }
 
