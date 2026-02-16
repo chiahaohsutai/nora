@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use tracing::{debug, instrument};
 
 use super::super::{generate_tag, tokenizer::Token};
-use super::{ParseResult, ParserState, Scope, TupleExt, blocks, decls, exprs};
+use super::{ParseResult, ParserState, Scope, TupleExt, blocks, decls, exprs, factors};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum ForInit {
@@ -79,13 +81,14 @@ pub struct Switch {
 
 impl Switch {
     #[rustfmt::skip]
-    fn new(id: String, value: exprs::Expr, body: Stmt) -> Self {
-        Self { id, value, body: Box::new(body), cases: vec![]}
+    fn new(id: String, value: exprs::Expr, body: Stmt, cases: Vec<Case>) -> Self {
+        Self { id, value, body: Box::new(body), cases }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Clause {
+    id: String,
     parent: Option<String>,
     value: exprs::Expr,
     body: Box<Stmt>,
@@ -93,21 +96,22 @@ pub struct Clause {
 
 impl Clause {
     #[rustfmt::skip]
-    fn new(parent: Option<String>, value: exprs::Expr, body: Stmt) -> Self {
-        Self { parent, value, body: Box::new(body)}
+    fn new(id: String, parent: Option<String>, value: exprs::Expr, body: Stmt) -> Self {
+        Self { id, parent, value, body: Box::new(body) }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Default {
+    id: String,
     parent: Option<String>,
     body: Box<Stmt>,
 }
 
 impl Default {
     #[rustfmt::skip]
-    fn new(parent: Option<String>, body: Stmt) -> Self {
-        Self { parent, body: Box::new(body)}
+    fn new(id: String, parent: Option<String>, body: Stmt) -> Self {
+        Self { id, parent, body: Box::new(body) }
     }
 }
 
@@ -322,10 +326,10 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming while statment");
     match state.tokens.pop_front() {
         Some(Token::While) => {
-            let (state, cond) = consume_cond(state)?;
-            let (mut state, body) = parse(state)?;
+            let (mut state, cond) = consume_cond(state)?;
             let id = generate_tag("while.loop");
             state.scopes.push_back(Scope::Loop(id.to_string()));
+            let (mut state, body) = parse(state)?;
             let stmt = Stmt::While(While::new(&id, cond, body));
             state.scopes.pop_back();
             Ok((state, stmt))
@@ -340,12 +344,12 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming dowhile statment");
     match state.tokens.pop_front() {
         Some(Token::Do) => {
+            let id = generate_tag("do.while.loop");
+            state.scopes.push_back(Scope::Loop(id.to_string()));
             let (mut state, body) = parse(state)?;
             match state.tokens.pop_front() {
                 Some(Token::While) => {
                     let (mut state, cond) = consume_cond(state)?;
-                    let id = generate_tag("do.while.loop");
-                    state.scopes.push_back(Scope::Loop(id.to_string()));
                     match state.tokens.pop_front() {
                         Some(Token::Semicolon) => {
                             let stmt = Stmt::DoWhile(While::new(&id, cond, body));
@@ -433,9 +437,9 @@ fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
                 let (mut state, post) = consume_for_post(state)?;
                 match state.tokens.pop_front() {
                     Some(Token::RParen) => {
-                        let (mut state, body) = parse(state)?;
                         let id = generate_tag("for.loop");
                         state.scopes.push_back(Scope::Loop(id.to_string()));
+                        let (mut state, body) = parse(state)?;
                         let stmt = Stmt::For(For::new(&id, init, cond, post, body));
                         state.scopes.pop_back();
                         Ok((state, stmt))
@@ -463,6 +467,21 @@ fn consume_expr(state: ParserState) -> ParseResult<Stmt> {
     }
 }
 
+fn resolve_integer_factor(factor: &factors::Factor) -> Option<u64> {
+    match factor {
+        factors::Factor::Int(i) => Some(*i),
+        factors::Factor::Expr(e) => resolve_integer_expr(e),
+        _ => None,
+    }
+}
+
+fn resolve_integer_expr(expression: &exprs::Expr) -> Option<u64> {
+    match expression {
+        exprs::Expr::Fac(factor) => resolve_integer_factor(factor),
+        _ => None,
+    }
+}
+
 #[instrument]
 fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
     debug!("Consuming case statment");
@@ -472,12 +491,22 @@ fn consume_case(mut state: ParserState) -> ParseResult<Stmt> {
             match state.tokens.pop_front() {
                 Some(Token::Colon) => {
                     let parent = state.current_switch().map(|scope| scope.label().into());
-                    let (mut state, body) = parse(state)?;
                     if let None = parent {
                         let e = "Found case stmt outside switch stmt scope";
                         state.errors.push(e.into());
                     }
-                    Ok((state, Stmt::Case(Clause::new(parent, expr, body))))
+                    let cases = state.cases.back_mut();
+                    let id = generate_tag("case");
+                    if let Some(cases) = cases {
+                        if let Some(i) = resolve_integer_expr(&expr) {
+                            if let Some(_) = cases.insert(super::Case::Int(i), id.clone()) {
+                                let e = "Found duplicate case within the same switch stmt";
+                                state.errors.push(e.into());
+                            }
+                        }
+                    }
+                    let (state, body) = parse(state)?;
+                    Ok((state, Stmt::Case(Clause::new(id, parent, expr, body))))
                 }
                 Some(token) => Err(format!("Expected `:` after case, found: {token}")),
                 None => Err("Unexpected end of input after case: expected `:`".into()),
@@ -495,12 +524,20 @@ fn consume_default(mut state: ParserState) -> ParseResult<Stmt> {
         Some(Token::Default) => match state.tokens.pop_front() {
             Some(Token::Colon) => {
                 let parent = state.current_switch().map(|scope| scope.label().into());
-                let (mut state, body) = parse(state)?;
                 if let None = parent {
                     let e = "Found default stmt outside switch stmt scope";
                     state.errors.push(e.into());
                 }
-                Ok((state, Stmt::Default(Default::new(parent, body))))
+                let cases = state.cases.back_mut();
+                let id = generate_tag("default");
+                if let Some(cases) = cases {
+                    if let Some(_) = cases.insert(super::Case::Default, id.clone()) {
+                        let e = "Found duplicate default case within the same switch stmt";
+                        state.errors.push(e.into());
+                    }
+                }
+                let (state, body) = parse(state)?;
+                Ok((state, Stmt::Default(Default::new(id, parent, body))))
             }
             Some(token) => Err(format!("Expected `:` after default, found: {token}")),
             None => Err("Unexpected end of input after default: expected `:`".into()),
@@ -519,11 +556,25 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
                 let (mut state, expr) = exprs::parse(state)?;
                 match state.tokens.pop_front() {
                     Some(Token::RParen) => {
-                        let (mut state, body) = parse(state)?;
                         let id = generate_tag("switch");
                         state.scopes.push_back(Scope::Switch(id.to_string()));
-                        let stmt = Stmt::Switch(Switch::new(id, expr, body));
+                        state.cases.push_back(HashMap::new());
+                        let (mut state, body) = parse(state)?;
+                        let cases = state
+                            .cases
+                            .back()
+                            .map(|map| {
+                                map.iter()
+                                    .map(|(k, v)| match k {
+                                        super::Case::Int(i) => Case::Int(*i, v.into()),
+                                        super::Case::Default => Case::Default(v.into()),
+                                    })
+                                    .collect::<Vec<Case>>()
+                            })
+                            .unwrap_or(Vec::new());
+                        let stmt = Stmt::Switch(Switch::new(id, expr, body, cases));
                         state.scopes.pop_back();
+                        state.cases.pop_back();
                         Ok((state, stmt))
                     }
                     Some(token) => Err(format!("Expected `)` found: {token}")),
