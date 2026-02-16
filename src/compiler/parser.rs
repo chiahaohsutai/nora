@@ -157,6 +157,5 @@ pub fn parse(tokens: Vec<Token>, resolve: bool) -> Result<Program, String> {
             return Err(error);
         }
     }
-
     Ok(Program(funs))
 }

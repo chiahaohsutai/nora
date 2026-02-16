@@ -326,7 +326,9 @@ fn consume_while(mut state: ParserState) -> ParseResult<Stmt> {
             let (mut state, body) = parse(state)?;
             let id = generate_tag("while.loop");
             state.scopes.push_back(Scope::Loop(id.to_string()));
-            Ok((state, Stmt::While(While::new(&id, cond, body))))
+            let stmt = Stmt::While(While::new(&id, cond, body));
+            state.scopes.pop_back();
+            Ok((state, stmt))
         }
         Some(token) => Err(format!("Expected `while` found: {token}")),
         None => Err(String::from("Unexpected end of input: expected `while`")),
@@ -346,7 +348,9 @@ fn consume_dowhile(mut state: ParserState) -> ParseResult<Stmt> {
                     state.scopes.push_back(Scope::Loop(id.to_string()));
                     match state.tokens.pop_front() {
                         Some(Token::Semicolon) => {
-                            Ok((state, Stmt::DoWhile(While::new(&id, cond, body))))
+                            let stmt = Stmt::DoWhile(While::new(&id, cond, body));
+                            state.scopes.pop_back();
+                            Ok((state, stmt))
                         }
                         Some(token) => Err(format!("Expected `;` found: {token}")),
                         None => Err(String::from("Unexpected end of input: expected `;`")),
@@ -432,7 +436,9 @@ fn consume_for(mut state: ParserState) -> ParseResult<Stmt> {
                         let (mut state, body) = parse(state)?;
                         let id = generate_tag("for.loop");
                         state.scopes.push_back(Scope::Loop(id.to_string()));
-                        Ok((state, Stmt::For(For::new(&id, init, cond, post, body))))
+                        let stmt = Stmt::For(For::new(&id, init, cond, post, body));
+                        state.scopes.pop_back();
+                        Ok((state, stmt))
                     }
                     Some(token) => Err(format!("Expected `)` found: {token}")),
                     None => Err(String::from("Unexpected end of input: expected `)`")),
@@ -516,7 +522,9 @@ fn consume_switch(mut state: ParserState) -> ParseResult<Stmt> {
                         let (mut state, body) = parse(state)?;
                         let id = generate_tag("switch");
                         state.scopes.push_back(Scope::Switch(id.to_string()));
-                        Ok((state, Stmt::Switch(Switch::new(id, expr, body))))
+                        let stmt = Stmt::Switch(Switch::new(id, expr, body));
+                        state.scopes.pop_back();
+                        Ok((state, stmt))
                     }
                     Some(token) => Err(format!("Expected `)` found: {token}")),
                     None => Err(String::from("Unexpected end of input: expected `)`")),
