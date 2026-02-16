@@ -87,6 +87,12 @@ where
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Case {
+    Int(u64),
+    Default,
+}
+
 #[derive(Debug, Clone)]
 struct ParserState {
     tokens: VecDeque<Token>,
@@ -96,6 +102,7 @@ struct ParserState {
     dups: HashSet<String>,
     errors: Vec<String>,
     vars: VarMap<String, String>,
+    cases: VecDeque<HashMap<Case, String>>,
 }
 
 impl ParserState {
@@ -108,6 +115,7 @@ impl ParserState {
             dups: HashSet::new(),
             errors: Vec::new(),
             vars: VarMap::new(),
+            cases: VecDeque::new(),
         }
     }
 
