@@ -14,23 +14,14 @@ struct Cli {
 #[derive(Args, Debug)]
 #[group(multiple = false)]
 struct Stages {
-    #[arg(long, short, help = "Tokenize the program")]
+    #[arg(long, help = "Tokenize the program")]
     lex: bool,
 
-    #[arg(long, short, help = "Generate an AST for the program")]
+    #[arg(long, help = "Generate an AST for the program")]
     parse: bool,
 
-    #[arg(long, short, help = "Run semantic analysis on the AST")]
-    validate: bool,
-
-    #[arg(long, short, help = "Generate TAC instructions")]
-    tacky: bool,
-
-    #[arg(long, short, help = "Generate assembly instructions")]
+    #[arg(long, help = "Generate assembly instructions")]
     codegen: bool,
-
-    #[arg(help = "Generate an object file")]
-    compile: bool,
 }
 
 fn main() -> Result<(), String> {
