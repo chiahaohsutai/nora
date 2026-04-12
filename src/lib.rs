@@ -1,9 +1,8 @@
-use std::env::temp_dir;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 pub trait Preprocessor {
-    fn preprocess(&self, input: &Path) -> Result<PathBuf, String>;
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 pub struct GccPreprocessor {
@@ -31,18 +30,20 @@ impl Default for GccPreprocessor {
 }
 
 impl Preprocessor for GccPreprocessor {
-    fn preprocess(&self, input: &Path) -> Result<PathBuf, String> {
-        let mut output = temp_dir().join(input.to_path_buf());
-        output.set_extension("i");
-
-        let mut cmd = self.preprocess_command(input, &output);
-        match cmd.output() {
-            Err(err) => Err(format!("Failed to execute command: {}", err.to_string())),
-            Ok(out) if out.status.success() => Ok(output),
-            Ok(out) => {
-                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                Err(format!("Preprocessing failed: {stderr}"))
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
+        if output.extension().is_some_and(|e| e == "i") {
+            let mut cmd = self.preprocess_command(input, output);
+            match cmd.output() {
+                Err(err) => Err(format!("Failed to execute command: {}", err.to_string())),
+                Ok(out) if out.status.success() => Ok(output.to_path_buf()),
+                Ok(out) => {
+                    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                    Err(format!("Preprocessing failed: {stderr}"))
+                }
             }
+        } else {
+            let output = output.display();
+            Err(format!("Output path must have a .i extension: {output}"))
         }
     }
 }
