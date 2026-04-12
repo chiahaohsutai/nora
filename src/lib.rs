@@ -1,26 +1,50 @@
-use std::path::Path;
+use std::env::temp_dir;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn preprocess(input: &Path) -> Result<Command, String> {
-    if !input.extension().is_some_and(|e| e.eq("c")) {
-        return Err(String::from("Input file must have a .c extension"));
+pub trait Preprocessor {
+    fn preprocess(&self, input: &Path) -> Result<PathBuf, String>;
+}
+
+pub struct GccPreprocessor {
+    command: String,
+}
+
+impl GccPreprocessor {
+    pub fn new(command: String) -> Self {
+        GccPreprocessor { command }
     }
 
-    let mut output = input.to_path_buf();
-    output.set_extension("i");
-
-    let mut cmd = Command::new("gcc");
-    cmd.arg("-E").arg("-P").arg(input).arg("-o").arg(output);
-
-    Ok(cmd)
+    fn preprocess_command(&self, input: &Path, output: &Path) -> Command {
+        let mut cmd = Command::new(&self.command);
+        cmd.arg("-E").arg("-P").arg(input).arg("-o").arg(output);
+        cmd
+    }
 }
 
-fn compile() {
-    todo!()
+impl Default for GccPreprocessor {
+    fn default() -> Self {
+        GccPreprocessor {
+            command: String::from("gcc"),
+        }
+    }
 }
 
-fn assemble() {
-    todo!()
+impl Preprocessor for GccPreprocessor {
+    fn preprocess(&self, input: &Path) -> Result<PathBuf, String> {
+        let mut output = temp_dir().join(input.to_path_buf());
+        output.set_extension("i");
+
+        let mut cmd = self.preprocess_command(input, &output);
+        match cmd.output() {
+            Err(err) => Err(format!("Failed to execute command: {}", err.to_string())),
+            Ok(out) if out.status.success() => Ok(output),
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                Err(format!("Preprocessing failed: {stderr}"))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -28,23 +52,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_preprocess_returns_correct_gcc_cmd_and_args() {
-        let input = Path::new("/foo.c");
+    fn gcc_preprocessor_builds_correct_preprocessing_command() {
+        let pre = GccPreprocessor::default();
+        let input = Path::new("input.c");
+        let output = Path::new("output.c");
 
-        let cmd = preprocess(input).unwrap();
-        let args: Vec<&str> = cmd.get_args().map(|arg| arg.to_str().unwrap()).collect();
+        let cmd = pre.preprocess_command(input, output);
+        let args: Vec<_> = cmd.get_args().collect();
 
-        assert_eq!(vec!["-E", "-P", "/foo.c", "-o", "/foo.i"], args);
-        assert_eq!(Some("gcc"), cmd.get_program().to_str());
-    }
-
-    #[test]
-    fn test_preprocess_returns_error_on_incorrect_file_extension() {
-        let input = Path::new("/foo.txt");
-
-        let cmd = preprocess(input);
-        let error = cmd.err().unwrap();
-
-        assert_eq!(error, String::from("Input file must have a .c extension"));
+        assert_eq!(args, &["-E", "-P", "input.c", "-o", "output.c"])
     }
 }
