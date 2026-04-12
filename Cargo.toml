@@ -6,9 +6,8 @@ description = "A C Compiler written in Rust"
 
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }
-tempfile = "3.26.0"
 
 [dev-dependencies]
 assert_cmd = "2.1.2"
-fake = "4.4.0"
 predicates = "3.1.4"
+rand = "0.10.1"

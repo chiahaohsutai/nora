@@ -1,5 +1,5 @@
 use clap::{Args, Parser};
-use std::path::PathBuf;
+use std::{ffi::OsStr, path::PathBuf};
 
 #[derive(Parser, Debug)]
 #[command(about, version)]
@@ -30,7 +30,7 @@ fn main() -> Result<(), String> {
     if !cli.path.exists() {
         return Err(format!("File {} does not exist", cli.path.display()));
     }
-    if !cli.path.exists() || !cli.path.extension().is_some_and(|ext| ext == "c") {
+    if cli.path.extension().unwrap_or(OsStr::new("")) != "c" {
         return Err(format!("File must be a .c file: {}", cli.path.display()));
     }
 
