@@ -7,7 +7,7 @@ use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
 #[test]
-fn test_cli_returns_error_if_path_does_not_exist() {
+fn cli_returns_error_if_path_does_not_exist() {
     let path = format!("{}.c", Alphanumeric.sample_string(&mut rng(), 24));
 
     let mut cli = Command::new(cargo::cargo_bin!());
@@ -18,7 +18,7 @@ fn test_cli_returns_error_if_path_does_not_exist() {
 }
 
 #[test]
-fn test_cli_returns_error_if_path_does_not_have_c_extension() {
+fn cli_returns_error_if_path_does_not_have_c_extension() {
     let filestem = Alphanumeric.sample_string(&mut rng(), 24);
     let path = temp_dir().join(format!("{}.mock", filestem));
 
