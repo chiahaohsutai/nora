@@ -5,13 +5,31 @@ pub trait Preprocessor {
     fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
-pub struct GccPreprocessor {
+pub trait Linker {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
+pub struct Gcc {
     command: String,
 }
 
-impl GccPreprocessor {
+fn command_output(mut cmd: Command) -> Result<(), String> {
+    match cmd.output() {
+        Ok(o) if o.status.success() => Ok(()),
+        Ok(o) => {
+            let stderr = String::from_utf8_lossy(&o.stderr).to_string();
+            Err(format!("Command failed with error: {stderr}"))
+        }
+        Err(e) => {
+            let error = e.to_string();
+            Err(format!("Failed to invoke command: {error}"))
+        }
+    }
+}
+
+impl Gcc {
     pub fn new(command: String) -> Self {
-        GccPreprocessor { command }
+        Gcc { command }
     }
 
     fn preprocess_command(&self, input: &Path, output: &Path) -> Command {
@@ -19,31 +37,42 @@ impl GccPreprocessor {
         cmd.arg("-E").arg("-P").arg(input).arg("-o").arg(output);
         cmd
     }
+
+    fn link_command(&self, input: &Path, output: &Path) -> Command {
+        let mut cmd = Command::new(&self.command);
+        cmd.arg(input).arg("-o").arg(output);
+        cmd
+    }
 }
 
-impl Default for GccPreprocessor {
+impl Default for Gcc {
     fn default() -> Self {
-        GccPreprocessor {
+        Gcc {
             command: String::from("gcc"),
         }
     }
 }
 
-impl Preprocessor for GccPreprocessor {
+impl Preprocessor for Gcc {
     fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if output.extension().is_some_and(|e| e == "i") {
-            let mut cmd = self.preprocess_command(input, output);
-            match cmd.output() {
-                Err(err) => Err(format!("Failed to execute command: {}", err.to_string())),
-                Ok(out) if out.status.success() => Ok(output.to_path_buf()),
-                Ok(out) => {
-                    let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-                    Err(format!("Preprocessing failed: {stderr}"))
-                }
-            }
+            let cmd = self.preprocess_command(input, output);
+            command_output(cmd).map(|_| output.to_path_buf())
         } else {
             let output = output.display();
             Err(format!("Output path must have a .i extension: {output}"))
+        }
+    }
+}
+
+impl Linker for Gcc {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
+        if output.extension().is_some_and(|e| e == "o") {
+            let cmd = self.link_command(input, output);
+            command_output(cmd).map(|_| output.to_path_buf())
+        } else {
+            let output = output.display();
+            Err(format!("Output path must have a .o extension: {output}"))
         }
     }
 }
@@ -54,7 +83,7 @@ mod tests {
 
     #[test]
     fn gcc_preprocessor_builds_correct_preprocessing_command() {
-        let pre = GccPreprocessor::default();
+        let pre = Gcc::default();
         let input = Path::new("input.c");
         let output = Path::new("output.c");
 
