@@ -70,15 +70,15 @@ impl Preprocessor for Gcc {
 
 impl Linker for Gcc {
     fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
-        if input.extension().is_some_and(|e| e != "s") {
-            let input = input.display();
-            Err(format!("Input path must have a .s extension: {input}"))
+        if input.extension().is_some_and(|e| e != "s" && e != "o") {
+            let inp = input.display();
+            Err(format!("Input path must have a .s or .o extension: {inp}"))
         } else if output.extension().is_none() {
             let cmd = self.link_command(input, output);
             command_output(cmd).map(|_| output.to_path_buf())
         } else {
-            let output = output.display();
-            Err(format!("Output path has invalid extension: {output}"))
+            let out = output.display();
+            Err(format!("Output path should not have an extension: {out}"))
         }
     }
 }
