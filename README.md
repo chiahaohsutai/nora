@@ -10,8 +10,15 @@ If someone happens to come across this project and finds it useful or interestin
 
 As always, happy coding!
 
-## References
+## Running the test suite
 
-- *Writing a C Compiler* — Nora Sandler  
-- *Functional Programming in Scala* — Paul Chiusano and Rúnar Bjarnason  
-- *Modeling Software with Finite State Machines* — Ferdinand Wagner, Ruedi Schmuki, and Thomas Wagner
+This project uses Nora Sandler’s *Writing a C Compiler* test suite, supplemented with additional unit tests written in Rust to improve validation and coverage. To run Nora Sandler’s test suite, follow the instructions in the official repository [writing-a-c-compiler-tests](https://github.com/nlsandler/writing-a-c-compiler-tests/).
+
+To run the additional unit and integration tests:
+
+```bash
+# Add x86_64 target (macOS)
+rustup target add x86_64-apple-darwin
+
+# Run tests (specify target if not already using x86_64)
+cargo test --target x86_64-apple-darwin
