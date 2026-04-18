@@ -1,18 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub trait Preprocessor {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
-pub trait Linker {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
-pub struct Gcc {
-    command: String,
-}
-
 fn command_output(mut cmd: Command) -> Result<(), String> {
     match cmd.output() {
         Ok(o) if o.status.success() => Ok(()),
@@ -25,6 +13,18 @@ fn command_output(mut cmd: Command) -> Result<(), String> {
             Err(format!("Failed to invoke command: {error}"))
         }
     }
+}
+
+pub trait Preprocessor {
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
+pub trait Linker {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
+pub struct Gcc {
+    command: String,
 }
 
 impl Gcc {
@@ -55,7 +55,10 @@ impl Default for Gcc {
 
 impl Preprocessor for Gcc {
     fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
-        if output.extension().is_some_and(|e| e == "i") {
+        if input.extension().is_some_and(|e| e != "c") {
+            let input = input.display();
+            Err(format!("Input path must have a .c extension: {input}"))
+        } else if output.extension().is_some_and(|e| e == "i") {
             let cmd = self.preprocess_command(input, output);
             command_output(cmd).map(|_| output.to_path_buf())
         } else {
@@ -67,12 +70,15 @@ impl Preprocessor for Gcc {
 
 impl Linker for Gcc {
     fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
-        if output.extension().is_some_and(|e| e == "o") {
+        if input.extension().is_some_and(|e| e != "s") {
+            let input = input.display();
+            Err(format!("Input path must have a .s extension: {input}"))
+        } else if output.extension().is_none() {
             let cmd = self.link_command(input, output);
             command_output(cmd).map(|_| output.to_path_buf())
         } else {
             let output = output.display();
-            Err(format!("Output path must have a .o extension: {output}"))
+            Err(format!("Output path has invalid extension: {output}"))
         }
     }
 }
@@ -85,11 +91,23 @@ mod tests {
     fn gcc_preprocessor_builds_correct_preprocessing_command() {
         let pre = Gcc::default();
         let input = Path::new("input.c");
-        let output = Path::new("output.c");
+        let output = Path::new("output.i");
 
         let cmd = pre.preprocess_command(input, output);
         let args: Vec<_> = cmd.get_args().collect();
 
-        assert_eq!(args, &["-E", "-P", "input.c", "-o", "output.c"])
+        assert_eq!(args, &["-E", "-P", "input.c", "-o", "output.i"])
+    }
+
+    #[test]
+    fn gcc_linker_builds_correct_linking_command() {
+        let linker = Gcc::default();
+        let input = Path::new("input.s");
+        let output = Path::new("output");
+
+        let cmd = linker.link_command(input, output);
+        let args: Vec<_> = cmd.get_args().collect();
+
+        assert_eq!(args, &["input.s", "-o", "output"])
     }
 }
