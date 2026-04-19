@@ -7,6 +7,8 @@ use rand::rng;
 
 mod tokens;
 
+pub use tokens::Token;
+
 pub fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
     let stem = Alphanumeric.sample_string(&mut rng(), len);
     let name = match ext {
@@ -98,8 +100,21 @@ impl Linker for Gcc {
     }
 }
 
-pub fn lex<T: AsRef<str>>(input: T) -> Result<Vec<tokens::Token>, String> {
-    todo!()
+pub trait Lexer {
+    fn lex<T>(&self, input: T) -> Result<Vec<tokens::Token>, String>
+    where
+        T: Iterator<Item = Result<char, String>>;
+}
+
+pub struct Luthor;
+
+impl Lexer for Luthor {
+    fn lex<T>(&self, input: T) -> Result<Vec<tokens::Token>, String>
+    where
+        T: Iterator<Item = Result<char, String>>,
+    {
+        Ok(Vec::new())
+    }
 }
 
 #[cfg(test)]
