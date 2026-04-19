@@ -1,5 +1,20 @@
+use std::env::temp_dir;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+use rand::distr::{Alphanumeric, SampleString};
+use rand::rng;
+
+mod tokens;
+
+pub fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
+    let stem = Alphanumeric.sample_string(&mut rng(), len);
+    let name = match ext {
+        Some(ext) => format!("{stem}.{}", ext.as_ref()),
+        None => stem,
+    };
+    temp_dir().join(PathBuf::from(name))
+}
 
 fn command_output(mut cmd: Command) -> Result<(), String> {
     match cmd.output() {
@@ -13,14 +28,6 @@ fn command_output(mut cmd: Command) -> Result<(), String> {
             Err(format!("Failed to invoke command: {error}"))
         }
     }
-}
-
-pub trait Preprocessor {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
-pub trait Linker {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 pub struct Gcc {
@@ -53,6 +60,10 @@ impl Default for Gcc {
     }
 }
 
+pub trait Preprocessor {
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
 impl Preprocessor for Gcc {
     fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "c") {
@@ -66,6 +77,10 @@ impl Preprocessor for Gcc {
             Err(format!("Output path must have a .i extension: {output}"))
         }
     }
+}
+
+pub trait Linker {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 impl Linker for Gcc {
@@ -83,9 +98,28 @@ impl Linker for Gcc {
     }
 }
 
+pub fn lex<T: AsRef<str>>(input: T) -> Result<Vec<tokens::Token>, String> {
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn random_temp_path_has_temp_directory_as_parent() {
+        let path = random_temp_file_path(Some("mock"), 10);
+        assert!(path.parent().is_some_and(|parent| parent == temp_dir()));
+    }
+
+    #[test]
+    fn random_temp_path_has_correct_extension_and_size() {
+        let path = random_temp_file_path(Some("mock"), 24);
+        let name = path.file_name().map(|os| os.to_str()).flatten();
+
+        assert!(name.is_some_and(|s| s.ends_with(".mock")));
+        assert!(name.is_some_and(|s| s.len() == 29));
+    }
 
     #[test]
     fn gcc_preprocessor_builds_correct_preprocessing_command() {

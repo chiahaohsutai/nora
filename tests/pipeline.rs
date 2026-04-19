@@ -1,22 +1,11 @@
-use std::env::temp_dir;
 use std::fs::{remove_file, write};
-use std::path::PathBuf;
 
 use predicates::Predicate;
 use predicates::str::contains;
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
-use nora::{Gcc, Linker, Preprocessor};
-
-fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
-    let stem = Alphanumeric.sample_string(&mut rng(), len);
-    let name = match ext {
-        Some(ext) => format!("{stem}.{}", ext.as_ref()),
-        None => stem,
-    };
-    temp_dir().join(PathBuf::from(name))
-}
+use nora::{Gcc, Linker, Preprocessor, random_temp_file_path};
 
 #[test]
 fn gcc_preprocessor_fails_if_command_does_not_exist() {
