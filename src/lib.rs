@@ -1,21 +1,23 @@
 use std::env::temp_dir;
+use std::fs::{File, remove_file};
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
-mod tokens;
+mod cli;
+mod compiler;
 
-pub use tokens::Token;
+pub use cli::Cli;
 
-pub fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
-    let stem = Alphanumeric.sample_string(&mut rng(), len);
-    let name = match ext {
-        Some(ext) => format!("{stem}.{}", ext.as_ref()),
-        None => stem,
-    };
-    temp_dir().join(PathBuf::from(name))
+pub trait Preprocessor {
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
+pub trait Linker {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 fn command_output(mut cmd: Command) -> Result<(), String> {
@@ -36,6 +38,14 @@ pub struct Gcc {
     command: String,
 }
 
+impl Default for Gcc {
+    fn default() -> Self {
+        Gcc {
+            command: String::from("gcc"),
+        }
+    }
+}
+
 impl Gcc {
     pub fn new(command: String) -> Self {
         Gcc { command }
@@ -54,18 +64,6 @@ impl Gcc {
     }
 }
 
-impl Default for Gcc {
-    fn default() -> Self {
-        Gcc {
-            command: String::from("gcc"),
-        }
-    }
-}
-
-pub trait Preprocessor {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
 impl Preprocessor for Gcc {
     fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "c") {
@@ -79,10 +77,6 @@ impl Preprocessor for Gcc {
             Err(format!("Output path must have a .i extension: {output}"))
         }
     }
-}
-
-pub trait Linker {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 impl Linker for Gcc {
@@ -100,21 +94,56 @@ impl Linker for Gcc {
     }
 }
 
-pub trait Lexer {
-    fn lex<T>(&self, input: T) -> Result<Vec<tokens::Token>, String>
-    where
-        T: Iterator<Item = Result<char, String>>;
+#[derive(PartialEq, Debug)]
+pub enum Phase {
+    Lex,
+    Parse,
+    Codegen,
 }
 
-pub struct Luthor;
+#[derive(PartialEq, Debug)]
+pub enum ExitReason {
+    Completed,
+    StoppedAfter(Phase),
+}
 
-impl Lexer for Luthor {
-    fn lex<T>(&self, input: T) -> Result<Vec<tokens::Token>, String>
-    where
-        T: Iterator<Item = Result<char, String>>,
-    {
-        Ok(Vec::new())
+pub fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
+    let stem = Alphanumeric.sample_string(&mut rng(), len);
+    let name = match ext {
+        Some(ext) => format!("{stem}.{}", ext.as_ref()),
+        None => stem,
+    };
+    temp_dir().join(PathBuf::from(name))
+}
+
+pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, String> {
+    let gcc = Gcc::default();
+    let out = random_temp_file_path(Some("i"), 24);
+
+    if let Err(err) = gcc.preprocess(path, &out) {
+        return Err(format!("Failed to preprocess input: {err}"));
+    };
+
+    let reader = match File::open(&out) {
+        Ok(file) => BufReader::new(file),
+        Err(err) => {
+            let _ = remove_file(&out);
+            return Err(format!("Failed to open file: {err}"));
+        }
+    };
+    let lines = reader.lines();
+
+    let chars = lines.flat_map(|line| match line {
+        Ok(l) => l.chars().map(Ok).collect::<Vec<_>>(),
+        Err(e) => vec![Err(e.to_string())],
+    });
+
+    let _ = remove_file(out);
+    if stop_after.is_some_and(|sa| sa == Phase::Lex) {
+        return Ok(ExitReason::StoppedAfter(Phase::Lex));
     }
+
+    Ok(ExitReason::Completed)
 }
 
 #[cfg(test)]
