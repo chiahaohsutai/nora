@@ -31,14 +31,6 @@ fn command_output(mut cmd: Command) -> Result<(), String> {
     }
 }
 
-pub trait Preprocessor {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
-pub trait Linker {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
 pub struct Gcc {
     command: String,
 }
@@ -67,10 +59,8 @@ impl Gcc {
         cmd.arg(input).arg("-o").arg(output);
         cmd
     }
-}
 
-impl Preprocessor for Gcc {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
+    pub fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "c") {
             let input = input.display();
             Err(format!("Input path must have a .c extension: {input}"))
@@ -82,10 +72,8 @@ impl Preprocessor for Gcc {
             Err(format!("Output path must have a .i extension: {output}"))
         }
     }
-}
 
-impl Linker for Gcc {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
+    pub fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "s" && e != "o") {
             let inp = input.display();
             Err(format!("Input path must have a .s or .o extension: {inp}"))

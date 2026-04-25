@@ -5,7 +5,7 @@ use predicates::str::contains;
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
-use nora::{Gcc, Linker, Preprocessor, temp_file_path};
+use nora::{Gcc, temp_file_path};
 
 #[test]
 fn gcc_preprocessor_fails_if_command_does_not_exist() {
