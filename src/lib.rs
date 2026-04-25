@@ -1,23 +1,20 @@
 use std::env::temp_dir;
-use std::fs::{File, remove_file};
-use std::io::{BufRead, BufReader};
+use std::fs::{read_to_string, remove_file};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
-mod cli;
 mod compiler;
 
-pub use cli::Cli;
-
-pub trait Preprocessor {
-    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
-}
-
-pub trait Linker {
-    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+pub fn temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
+    let stem = Alphanumeric.sample_string(&mut rng(), len);
+    let name = match ext {
+        Some(ext) => format!("{stem}.{}", ext.as_ref()),
+        None => stem,
+    };
+    temp_dir().join(PathBuf::from(name))
 }
 
 fn command_output(mut cmd: Command) -> Result<(), String> {
@@ -32,6 +29,14 @@ fn command_output(mut cmd: Command) -> Result<(), String> {
             Err(format!("Failed to invoke command: {error}"))
         }
     }
+}
+
+pub trait Preprocessor {
+    fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
+}
+
+pub trait Linker {
+    fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String>;
 }
 
 pub struct Gcc {
@@ -107,38 +112,22 @@ pub enum ExitReason {
     StoppedAfter(Phase),
 }
 
-pub fn random_temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
-    let stem = Alphanumeric.sample_string(&mut rng(), len);
-    let name = match ext {
-        Some(ext) => format!("{stem}.{}", ext.as_ref()),
-        None => stem,
-    };
-    temp_dir().join(PathBuf::from(name))
-}
-
 pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, String> {
     let gcc = Gcc::default();
-    let out = random_temp_file_path(Some("i"), 24);
+    let inter = temp_file_path(Some("i"), 24);
 
-    if let Err(err) = gcc.preprocess(path, &out) {
+    if let Err(err) = gcc.preprocess(path, &inter) {
         return Err(format!("Failed to preprocess input: {err}"));
     };
-
-    let reader = match File::open(&out) {
-        Ok(file) => BufReader::new(file),
+    let tokens = match read_to_string(&inter) {
+        Ok(contents) => contents,
         Err(err) => {
-            let _ = remove_file(&out);
+            let _ = remove_file(&inter);
             return Err(format!("Failed to open file: {err}"));
         }
     };
-    let lines = reader.lines();
 
-    let chars = lines.flat_map(|line| match line {
-        Ok(l) => l.chars().map(Ok).collect::<Vec<_>>(),
-        Err(e) => vec![Err(e.to_string())],
-    });
-
-    let _ = remove_file(out);
+    let _ = remove_file(inter);
     if stop_after.is_some_and(|sa| sa == Phase::Lex) {
         return Ok(ExitReason::StoppedAfter(Phase::Lex));
     }
@@ -152,13 +141,13 @@ mod tests {
 
     #[test]
     fn random_temp_path_has_temp_directory_as_parent() {
-        let path = random_temp_file_path(Some("mock"), 10);
+        let path = temp_file_path(Some("mock"), 10);
         assert!(path.parent().is_some_and(|parent| parent == temp_dir()));
     }
 
     #[test]
     fn random_temp_path_has_correct_extension_and_size() {
-        let path = random_temp_file_path(Some("mock"), 24);
+        let path = temp_file_path(Some("mock"), 24);
         let name = path.file_name().map(|os| os.to_str()).flatten();
 
         assert!(name.is_some_and(|s| s.ends_with(".mock")));

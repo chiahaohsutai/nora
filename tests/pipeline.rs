@@ -5,13 +5,13 @@ use predicates::str::contains;
 use rand::distr::{Alphanumeric, SampleString};
 use rand::rng;
 
-use nora::{Gcc, Linker, Preprocessor, random_temp_file_path};
+use nora::{Gcc, Linker, Preprocessor, temp_file_path};
 
 #[test]
 fn gcc_preprocessor_fails_if_command_does_not_exist() {
     let cmd = Alphanumeric.sample_string(&mut rng(), 10);
-    let input = random_temp_file_path(Some("c"), 24);
-    let output = random_temp_file_path(Some("i"), 24);
+    let input = temp_file_path(Some("c"), 24);
+    let output = temp_file_path(Some("i"), 24);
 
     let gcc = Gcc::new(cmd);
     let res = gcc.preprocess(&input, &output);
@@ -22,8 +22,8 @@ fn gcc_preprocessor_fails_if_command_does_not_exist() {
 
 #[test]
 fn gcc_preprocessor_fails_if_file_does_not_exist() {
-    let input = random_temp_file_path(Some("c"), 24);
-    let output = random_temp_file_path(Some("i"), 24);
+    let input = temp_file_path(Some("c"), 24);
+    let output = temp_file_path(Some("i"), 24);
 
     let gcc = Gcc::default();
     let res = gcc.preprocess(&input, &output);
@@ -34,8 +34,8 @@ fn gcc_preprocessor_fails_if_file_does_not_exist() {
 
 #[test]
 fn gcc_preprocessor_fails_if_input_file_does_not_have_c_extension() {
-    let input = random_temp_file_path(Some("mock"), 24);
-    let output = random_temp_file_path(Some("i"), 24);
+    let input = temp_file_path(Some("mock"), 24);
+    let output = temp_file_path(Some("i"), 24);
 
     let gcc = Gcc::default();
     let res = gcc.preprocess(&input, &output);
@@ -46,8 +46,8 @@ fn gcc_preprocessor_fails_if_input_file_does_not_have_c_extension() {
 
 #[test]
 fn gcc_preprocessor_fails_if_output_path_does_not_have_i_extension() {
-    let input = random_temp_file_path(Some("c"), 24);
-    let output = random_temp_file_path(Some("mock"), 24);
+    let input = temp_file_path(Some("c"), 24);
+    let output = temp_file_path(Some("mock"), 24);
 
     let gcc = Gcc::default();
     let res = gcc.preprocess(&input, &output);
@@ -58,8 +58,8 @@ fn gcc_preprocessor_fails_if_output_path_does_not_have_i_extension() {
 
 #[test]
 fn gcc_preprocessor_generates_intermediate_file() {
-    let input = random_temp_file_path(Some("c"), 24);
-    let output = random_temp_file_path(Some("i"), 24);
+    let input = temp_file_path(Some("c"), 24);
+    let output = temp_file_path(Some("i"), 24);
     write(&input, "int main(){return 0;}").unwrap();
 
     let gcc = Gcc::default();
@@ -75,8 +75,8 @@ fn gcc_preprocessor_generates_intermediate_file() {
 #[test]
 fn gcc_linker_fails_if_command_does_not_exist() {
     let cmd = Alphanumeric.sample_string(&mut rng(), 10);
-    let input = random_temp_file_path(Some("s"), 24);
-    let output = random_temp_file_path::<String>(None, 24);
+    let input = temp_file_path(Some("s"), 24);
+    let output = temp_file_path::<String>(None, 24);
 
     let gcc = Gcc::new(cmd);
     let res = gcc.link(&input, &output);
@@ -87,8 +87,8 @@ fn gcc_linker_fails_if_command_does_not_exist() {
 
 #[test]
 fn gcc_linker_fails_if_file_does_not_exist() {
-    let input = random_temp_file_path(Some("s"), 24);
-    let output = random_temp_file_path::<String>(None, 24);
+    let input = temp_file_path(Some("s"), 24);
+    let output = temp_file_path::<String>(None, 24);
 
     let gcc = Gcc::default();
     let res = gcc.link(&input, &output);
@@ -99,8 +99,8 @@ fn gcc_linker_fails_if_file_does_not_exist() {
 
 #[test]
 fn gcc_linker_fails_if_input_file_does_not_have_s_or_o_extension() {
-    let input = random_temp_file_path(Some("mock"), 24);
-    let output = random_temp_file_path::<String>(None, 24);
+    let input = temp_file_path(Some("mock"), 24);
+    let output = temp_file_path::<String>(None, 24);
 
     let gcc = Gcc::default();
     let res = gcc.link(&input, &output);
@@ -111,8 +111,8 @@ fn gcc_linker_fails_if_input_file_does_not_have_s_or_o_extension() {
 
 #[test]
 fn gcc_linker_fails_if_output_path_has_an_extension() {
-    let input = random_temp_file_path(Some("s"), 24);
-    let output = random_temp_file_path(Some("mock"), 24);
+    let input = temp_file_path(Some("s"), 24);
+    let output = temp_file_path(Some("mock"), 24);
 
     let gcc = Gcc::default();
     let res = gcc.link(&input, &output);
@@ -123,8 +123,8 @@ fn gcc_linker_fails_if_output_path_has_an_extension() {
 
 #[test]
 fn gcc_linker_generates_executable_file() {
-    let input = random_temp_file_path(Some("s"), 24);
-    let output = random_temp_file_path::<String>(None, 24);
+    let input = temp_file_path(Some("s"), 24);
+    let output = temp_file_path::<String>(None, 24);
     write(&input, ".globl _main\n_main:\nxorl %eax, %eax\nretq").unwrap();
 
     let gcc = Gcc::default();
