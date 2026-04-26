@@ -8,6 +8,7 @@ use rand::rng;
 
 mod compiler;
 
+/// Generates a random file path within the system's temp directory.
 pub fn temp_file_path<T: AsRef<str>>(ext: Option<T>, len: usize) -> PathBuf {
     let stem = Alphanumeric.sample_string(&mut rng(), len);
     let name = match ext {
@@ -31,6 +32,7 @@ fn command_output(mut cmd: Command) -> Result<(), String> {
     }
 }
 
+/// Wrapper implementation for executing GCC commands.
 pub struct Gcc {
     command: String,
 }
@@ -44,6 +46,7 @@ impl Default for Gcc {
 }
 
 impl Gcc {
+    /// Instantiates a new GCC instance.
     pub fn new(command: String) -> Self {
         Gcc { command }
     }
@@ -60,6 +63,7 @@ impl Gcc {
         cmd
     }
 
+    /// Preprocesses a `.c` input file into a `.i` file at the given output path.
     pub fn preprocess(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "c") {
             let input = input.display();
@@ -73,6 +77,7 @@ impl Gcc {
         }
     }
 
+    /// Links a `.s` or `.o` input file into an executable at the given output path.
     pub fn link(&self, input: &Path, output: &Path) -> Result<PathBuf, String> {
         if input.extension().is_some_and(|e| e != "s" && e != "o") {
             let inp = input.display();
@@ -87,6 +92,7 @@ impl Gcc {
     }
 }
 
+/// Describes the different compilation phases in a compiler.
 #[derive(PartialEq, Debug)]
 pub enum Phase {
     Lex,
@@ -94,12 +100,14 @@ pub enum Phase {
     Codegen,
 }
 
+/// Describes why the compilation process exited.
 #[derive(PartialEq, Debug)]
 pub enum ExitReason {
     Completed,
     StoppedAfter(Phase),
 }
 
+/// Runs the compilation pipeline on the given `.c` input file.
 pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, String> {
     let gcc = Gcc::default();
     let inter = temp_file_path(Some("i"), 24);
@@ -108,7 +116,13 @@ pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, Str
         return Err(format!("Failed to preprocess input: {err}"));
     };
     let tokens = match read_to_string(&inter) {
-        Ok(contents) => contents,
+        Ok(contents) => match compiler::Lexer::default().lex(contents) {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                let _ = remove_file(&inter);
+                return Err(format!("Failed to open file: {err}"));
+            }
+        },
         Err(err) => {
             let _ = remove_file(&inter);
             return Err(format!("Failed to open file: {err}"));
