@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+/// Represents a keyword token in a C program.
 #[derive(Debug, PartialEq)]
 pub enum Keyword {
     Int,
@@ -20,6 +21,7 @@ impl TryFrom<&str> for Keyword {
     }
 }
 
+/// Represents a token for a C program.
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Ident(String),
@@ -32,16 +34,14 @@ pub enum Token {
 
 enum LexState {
     Init,
-    Punc,
     Ident,
     Const,
-    Group,
 }
 
+/// Represents a tokenizer for C programs.
 pub struct Lexer {
     tokens: Vec<Token>,
     buffer: Vec<char>,
-    mark: Option<usize>,
     pending: VecDeque<char>,
 }
 
@@ -51,7 +51,6 @@ impl Default for Lexer {
             tokens: Vec::new(),
             buffer: Vec::new(),
             pending: VecDeque::new(),
-            mark: None,
         }
     }
 }
@@ -141,13 +140,12 @@ impl Lexer {
     fn advance(&mut self, state: LexState, input: char) -> Result<LexState, String> {
         match state {
             LexState::Init => self.on_init(input),
-            LexState::Punc => self.on_punc(input),
             LexState::Const => self.on_const(input),
             LexState::Ident => self.on_ident(input),
-            LexState::Group => self.on_group(input),
         }
     }
 
+    /// Tokenizes input into a vector of tokens.
     pub fn lex<T: AsRef<str>>(mut self, input: T) -> Result<Vec<Token>, String> {
         let mut state = LexState::Init;
         let mut chars = input.as_ref().chars();
