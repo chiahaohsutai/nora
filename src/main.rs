@@ -47,6 +47,5 @@ fn main() -> Result<(), String> {
     } else {
         None
     };
-
-    Ok(())
+    compile(&cli.path, stop_after).map(|_| ())
 }

@@ -115,7 +115,7 @@ pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, Str
     if let Err(err) = gcc.preprocess(path, &inter) {
         return Err(format!("Failed to preprocess input: {err}"));
     };
-    let tokens = match read_to_string(&inter) {
+    let _ = match read_to_string(&inter) {
         Ok(contents) => match compiler::Lexer::default().lex(contents) {
             Ok(tokens) => tokens,
             Err(err) => {
@@ -133,7 +133,6 @@ pub fn compile(path: &Path, stop_after: Option<Phase>) -> Result<ExitReason, Str
     if stop_after.is_some_and(|sa| sa == Phase::Lex) {
         return Ok(ExitReason::StoppedAfter(Phase::Lex));
     }
-
     Ok(ExitReason::Completed)
 }
 
