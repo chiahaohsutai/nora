@@ -37,7 +37,7 @@ fn main() -> Result<(), String> {
     if cli.path.extension().unwrap_or(OsStr::new("")) != "c" {
         return Err(format!("File must be a .c file: {}", cli.path.display()));
     }
-
+    
     let stop_after = if cli.stage.lex {
         Some(Phase::Lex)
     } else if cli.stage.parse {
