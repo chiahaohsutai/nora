@@ -17,8 +17,5 @@ This project uses Nora Sandler’s *Writing a C Compiler* test suite, supplement
 To run the additional unit and integration tests:
 
 ```bash
-# Add x86_64 target (macOS)
-rustup target add x86_64-apple-darwin
-
-# Run tests (specify target if not already using x86_64)
-cargo test --target x86_64-apple-darwin
+cargo test
+```
