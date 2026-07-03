@@ -12,7 +12,6 @@ fn returns_error_on_invalid_file_path() -> Result<(), Box<dyn Error>> {
 
     let assertion = cmd.arg(input).assert().failure();
     assertion.stderr(contains("Invalid file path"));
-
     Ok(())
 }
 
@@ -26,6 +25,5 @@ fn returns_error_on_invalid_file_extension() -> Result<(), Box<dyn Error>> {
 
     let assertion = cmd.arg(input).assert().failure();
     assertion.stderr(contains("Input must have a .c extension"));
-
     Ok(())
 }
