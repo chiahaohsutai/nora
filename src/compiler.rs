@@ -46,10 +46,10 @@ impl Toolchain for GccToolchain {
             return Err(format!("Invalid assembly file: {path}"));
         }
         let mut command =  Command::new(&self.program);
-        match command.arg(input).arg("-O").arg(output).status() {
+        match command.arg(input).arg("-o").arg(output).status() {
             Ok(status) if status.success() => Ok(()),
-            Ok(status) => Err(format!("Preprocessing failed with status: {status}")),
-            Err(error) => Err(format!("Preprocessing command failed: {error}")),
+            Ok(status) => Err(format!("Linking failed with status: {status}")),
+            Err(error) => Err(format!("Linking command failed: {error}")),
         }
     }
 }
