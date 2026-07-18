@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::{Args, Parser};
 
-#[derive(Args, Debug)]
+#[derive(Args, Debug, PartialEq, Eq, Clone, Copy)]
 #[group(required = false, multiple = false)]
 struct Stage {
     #[arg(short, long, help = "Execute the lexing stage and exit.")]
@@ -15,7 +15,7 @@ struct Stage {
     codegen: bool,
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, PartialEq, Eq, Clone)]
 #[command(version, about, long_about = "Compiles a C program into an executable binary.")]
 struct Driver {
     #[arg(help = "Absolute or relative path to the C program.")]

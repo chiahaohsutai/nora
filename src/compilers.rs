@@ -14,7 +14,7 @@ pub trait Toolchain {
 }
 
 /// A GCC-based implementation of the `Toolchain` trait.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct GccToolchain {
     program: String
 }
