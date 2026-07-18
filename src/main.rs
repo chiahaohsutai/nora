@@ -16,7 +16,7 @@ struct Stage {
 }
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = "Compiles a C program into an executable binary")]
 struct Driver {
     #[arg(help = "Absolute or relative path to the C program")]
     path: PathBuf,
