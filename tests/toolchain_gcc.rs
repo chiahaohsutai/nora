@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use assert_fs::TempDir;
 use nanoid::nanoid;
 
-use nora::compiler::{GccToolchain, Toolchain};
+use nora::compilers::{GccToolchain, Toolchain};
 
 #[test]
 fn preprocess_returns_error_on_nonexistent_file() -> Result<(), Box<dyn Error>> {

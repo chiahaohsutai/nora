@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-mod lexer;
+mod lexers;
 mod tokens;
 
 /// Provides compiler toolchain operations for preprocessing and linking.
