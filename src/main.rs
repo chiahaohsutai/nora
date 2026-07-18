@@ -1,8 +1,7 @@
-use std::{fmt::format, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{Args, Parser};
 
-/// Represents the compiler driver's compilation stages
 #[derive(Args, Debug)]
 #[group(required = false, multiple = false)]
 struct Stage {
@@ -16,7 +15,6 @@ struct Stage {
     codegen: bool,
 }
 
-/// Represents the command line tool that manages the compiler driver
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Driver {
@@ -38,6 +36,6 @@ fn main() -> Result<(), String> {
         let path = args.path.display();
         return Err(format!("Input must have a .c extension: {path}"));
     }
-    
+
     todo!()
 }

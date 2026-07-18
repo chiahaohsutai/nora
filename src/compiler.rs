@@ -4,17 +4,23 @@ use std::process::Command;
 mod lexer;
 mod tokens;
 
+/// Provides compiler toolchain operations for preprocessing and linking.
 pub trait Toolchain {
+    /// Preprocesses a C source file and writes the result to `output`.
     fn preprocess(&self, input: &Path, output: &Path) -> Result<(), String>;
+
+    /// Assembles and links an assembly file into an executable.
     fn assemble_and_link(&self, input: &Path, output: &Path) -> Result<(), String>;
 }
 
+/// A GCC-based implementation of the `Toolchain` trait.
 #[derive(Debug)]
 pub struct GccToolchain {
     program: String
 }
 
 impl GccToolchain {
+    /// Creates a new GCC toolchain using the specified compiler executable.
     pub fn new(program: &str) -> Self {
         GccToolchain { program: program.to_string() }
     }
